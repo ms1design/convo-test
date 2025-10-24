@@ -1,6 +1,7 @@
 {
   "domain": "nexus_conversation",
   "name": "Nexus",
+  "version": "0.0.1",
   "after_dependencies": ["assist_pipeline", "intent"],
   "codeowners": [],
   "config_flow": true,

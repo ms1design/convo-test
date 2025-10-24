@@ -63,7 +63,9 @@ jobs:
       - name: Update version in manifest.json
         run: |
           NEW_VERSION="${{ env.NEW_VERSION }}"
-          jq --arg version "$NEW_VERSION" '.version = $version' custom_components/nexus_conversation/manifest.json | sponge manifest.json
+          jq --arg version "$NEW_VERSION" '.version = $version' custom_components/nexus_conversation/manifest.json > /tmp/manifest.json
+          mv /tmp/manifest.json custom_components/nexus_conversation/manifest.json
+          rm /tmp/manifest.json
           echo "Updated version in manifest.json to $NEW_VERSION"
 
       - name: Commit changes

@@ -1,95 +1,18 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+# artifacts
+__pycache__
+.pytest*
+*.egg-info
+*/build/*
+*/dist/*
 
-# C extensions
-*.so
 
-# Distribution / packaging
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-lib/
-lib64/
-parts/
-include/
-.eggs/
-.installed.cfg
-*.egg-info/
-*.egg
-
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Virtual Environment
-venv/
-ENV/
-.env
-.env.bak
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mypy
-.mypy_cache/
-
-# Pyre type checker
-.pyre/
-
-# mypy
-.mypy_cache/
-
-# Editor files
-*.swp
-*.swo
-*~
-
-# IDEs
-.idea/
-.vscode/
-*.sublime-project
-*.sublime-workspace
-
+# misc
+.coverage
+.vscode
+coverage.xml
+.ruff_cache
 .venv
 
-# Environment files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Test coverage
-.coverage
-.coverage.*
-.cache
-.pytest_cache/
-
-# Logs
-logs/
-*.log
-
-# Temporary files
-*.tmp
-*.temp
-
-# Configuration files that may contain sensitive information
-secrets.yaml
-configuration.yaml
-
-# Custom component files
-custom_components/nexus_conversation/__pycache__/
-custom_components/nexus_conversation/.venv/
+# Home Assistant configuration
+config/*
+!config/configuration.yaml

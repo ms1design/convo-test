@@ -5,7 +5,7 @@
 openai==2.2.0
 
 # Home Assistant integration dependencies
-homeassistant>=2024.10.0
+homeassistant==2025.2.4
 
 # Additional dependencies for API communication
 requests==2.31.0

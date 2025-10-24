@@ -42,7 +42,7 @@ jobs:
         id: version
         run: |
           # Read current version from manifest.json
-          CURRENT_VERSION=$(jq -r '.version' manifest.json)
+          CURRENT_VERSION=$(jq -r '.version' custom_components/nexus_conversation/manifest.json)
           echo "Current version: $CURRENT_VERSION"
 
           # Parse major, minor, patch
@@ -63,14 +63,14 @@ jobs:
       - name: Update version in manifest.json
         run: |
           NEW_VERSION="${{ env.NEW_VERSION }}"
-          jq --arg version "$NEW_VERSION" '.version = $version' manifest.json | sponge manifest.json
+          jq --arg version "$NEW_VERSION" '.version = $version' custom_components/nexus_conversation/manifest.json | sponge manifest.json
           echo "Updated version in manifest.json to $NEW_VERSION"
 
       - name: Commit changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add manifest.json
+          git add custom_components/nexus_conversation/manifest.json
           git commit -m "chore: update version to ${{ env.NEW_VERSION }}" || echo "No changes to commit"
           git push
 
@@ -78,9 +78,9 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          name: "v${{ env.NEW_VERSION }}"
-          tag: "v${{ env.NEW_VERSION }}"
-          body: "Release v${{ env.NEW_VERSION }}"
+          name: "v$(jq -r '.version' custom_components/nexus_conversation/manifest.json)"
+          tag: "v$(jq -r '.version' custom_components/nexus_conversation/manifest.json)"
+          body: "Release v$(jq -r '.version' custom_components/nexus_conversation/manifest.json)"
           draft: false
           prerelease: false
           generate_release_notes: true

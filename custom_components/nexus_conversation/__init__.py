@@ -66,7 +66,7 @@ SERVICE_GENERATE_CONTENT = "generate_content"
 PLATFORMS = (Platform.AI_TASK, Platform.CONVERSATION)
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
-type OpenAIConfigEntry = ConfigEntry[openai.AsyncClient]
+type NexusConfigEntry = ConfigEntry[openai.AsyncClient]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -233,7 +233,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: OpenAIConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> bool:
     """Set up OpenAI Conversation from a config entry."""
     client = openai.AsyncOpenAI(
         base_url=entry.data[CONF_BASE_URL],
@@ -266,7 +266,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
-async def async_update_options(hass: HomeAssistant, entry: OpenAIConfigEntry) -> None:
+async def async_update_options(hass: HomeAssistant, entry: NexusConfigEntry) -> None:
     """Update options."""
     await hass.config_entries.async_reload(entry.entry_id)
 
@@ -380,7 +380,7 @@ async def async_migrate_integration(hass: HomeAssistant) -> None:
             )
 
 
-async def async_migrate_entry(hass: HomeAssistant, entry: OpenAIConfigEntry) -> bool:
+async def async_migrate_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> bool:
     """Migrate entry."""
     LOGGER.debug("Migrating from version %s:%s", entry.version, entry.minor_version)
 
@@ -445,7 +445,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: OpenAIConfigEntry) -> 
     return True
 
 
-def _add_ai_task_subentry(hass: HomeAssistant, entry: OpenAIConfigEntry) -> None:
+def _add_ai_task_subentry(hass: HomeAssistant, entry: NexusConfigEntry) -> None:
     """Add AI Task subentry to the config entry."""
     hass.config_entries.async_add_subentry(
         entry,

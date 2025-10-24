@@ -103,7 +103,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
     await hass.async_add_executor_job(client.with_options(timeout=10.0).models.list)
 
 
-class OpenAIConfigFlow(ConfigFlow, domain=DOMAIN):
+class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for OpenAI Conversation."""
 
     VERSION = 2
@@ -161,12 +161,12 @@ class OpenAIConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> dict[str, type[ConfigSubentryFlow]]:
         """Return subentries supported by this integration."""
         return {
-            "conversation": OpenAISubentryFlowHandler,
-            "ai_task_data": OpenAISubentryFlowHandler,
+            "conversation": NexusSubentryFlowHandler,
+            "ai_task_data": NexusSubentryFlowHandler,
         }
 
 
-class OpenAISubentryFlowHandler(ConfigSubentryFlow):
+class NexusSubentryFlowHandler(ConfigSubentryFlow):
     """Flow for managing OpenAI subentries."""
 
     last_rendered_recommended = False

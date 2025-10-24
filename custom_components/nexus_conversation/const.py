@@ -13,6 +13,7 @@ DEFAULT_AI_TASK_NAME = "Nexus AI Task"
 DEFAULT_NAME = "Nexus Conversation"
 
 CONF_BASE_URL = "base_url"
+CONF_ORGANISATION = "FutureProofHomes"
 
 CONF_CHAT_MODEL = "chat_model"
 CONF_IMAGE_MODEL = "image_model"

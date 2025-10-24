@@ -65,6 +65,7 @@ from homeassistant.helpers.entity import Entity
 from homeassistant.util import slugify
 
 from .const import (
+    CONF_ORGANISATION,
     CONF_CHAT_MODEL,
     CONF_CODE_INTERPRETER,
     CONF_IMAGE_MODEL,
@@ -93,7 +94,7 @@ from .const import (
 )
 
 if TYPE_CHECKING:
-    from . import OpenAIConfigEntry
+    from . import NexusConfigEntry
 
 
 # Max number of back and forth with the LLM to generate a response
@@ -424,13 +425,13 @@ async def _transform_stream(  # noqa: C901 - This is complex, but better to have
             raise HomeAssistantError(f"OpenAI response error: {event.message}")
 
 
-class OpenAIBaseLLMEntity(Entity):
+class NexusBaseLLMEntity(Entity):
     """OpenAI conversation agent."""
 
     _attr_has_entity_name = True
     _attr_name = None
 
-    def __init__(self, entry: OpenAIConfigEntry, subentry: ConfigSubentry) -> None:
+    def __init__(self, entry: NexusConfigEntry, subentry: ConfigSubentry) -> None:
         """Initialize the entity."""
         self.entry = entry
         self.subentry = subentry
@@ -438,7 +439,7 @@ class OpenAIBaseLLMEntity(Entity):
         self._attr_device_info = dr.DeviceInfo(
             identifiers={(DOMAIN, subentry.subentry_id)},
             name=subentry.title,
-            manufacturer="OpenAI",
+            manufacturer=CONF_ORGANISATION,
             model=subentry.data.get(CONF_CHAT_MODEL, RECOMMENDED_CHAT_MODEL),
             entry_type=dr.DeviceEntryType.SERVICE,
         )

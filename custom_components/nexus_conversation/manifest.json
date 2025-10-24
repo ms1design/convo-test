@@ -1,6 +1,6 @@
 {
   "domain": "nexus_conversation",
-  "name": "OpenAI",
+  "name": "Nexus",
   "after_dependencies": ["assist_pipeline", "intent"],
   "codeowners": [],
   "config_flow": true,

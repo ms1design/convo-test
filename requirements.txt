@@ -1,8 +1,8 @@
 # Requirements for Nexus Conversation Integration
 # Home Assistant 2024.10+
 
-# OpenAI Python SDK (v2.2.0 recommended)
-openai==2.2.0
+# OpenAI Python SDK
+openai==1.99.5
 
 # Home Assistant integration dependencies
 homeassistant==2025.2.4
@@ -12,3 +12,7 @@ requests==2.31.0
 
 # Optional: For image generation support
 Pillow==10.0.1
+
+pip>=21.3.1
+ruff==0.14.2
+colorlog==6.10.1

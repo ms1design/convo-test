@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  # push:
+  #   branches:
+  #     - main
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0). If omitted, auto-increment patch version.'
+        required: false
+        default: ''
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          export PATH="$HOME/.local/bin:$PATH"
+
+      - name: Install dependencies
+        run: uv pip install -r requirements.txt
+
+      - name: Read and bump version from manifest.json
+        id: version
+        run: |
+          # Read current version from manifest.json
+          CURRENT_VERSION=$(jq -r '.version' manifest.json)
+          echo "Current version: $CURRENT_VERSION"
+
+          # Parse major, minor, patch
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          # If version input is provided, use it; otherwise, bump patch
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            NEW_VERSION="${{ github.event.inputs.version }}"
+          else
+            # Bump patch version
+            NEW_PATCH=$((PATCH + 1))
+            NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          fi
+
+          echo "New version: $NEW_VERSION"
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Update version in manifest.json
+        run: |
+          NEW_VERSION="${{ env.NEW_VERSION }}"
+          jq --arg version "$NEW_VERSION" '.version = $version' manifest.json | sponge manifest.json
+          echo "Updated version in manifest.json to $NEW_VERSION"
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add manifest.json
+          git commit -m "chore: update version to ${{ env.NEW_VERSION }}" || echo "No changes to commit"
+          git push
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: "v${{ env.NEW_VERSION }}"
+          tag: "v${{ env.NEW_VERSION }}"
+          body: "Release v${{ env.NEW_VERSION }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true

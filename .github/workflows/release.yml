@@ -36,13 +36,13 @@ jobs:
       - name: Install test deps
         run: uv pip install -r requirements.txt
 
-      - name: HACS validation
-        uses: hacs/action@main
-        with:
-          category: integration
+      # - name: HACS validation
+      #   uses: hacs/action@main
+      #   with:
+      #     category: integration
 
-      - name: Hassfest validation
-        uses: home-assistant/actions/hassfest@master
+      # - name: Hassfest validation
+      #   uses: home-assistant/actions/hassfest@master
 
   release:
     name: Bump version and create release

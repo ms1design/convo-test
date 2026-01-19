@@ -82,7 +82,7 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
           name: "v$(jq -r '.version' custom_components/nexus_conversation/manifest.json)"
-          tag: "v$(jq -r '.version' custom_components/nexus_conversation/manifest.json)"
+          tag: "$(jq -r '.version' custom_components/nexus_conversation/manifest.json)"
           body: "Release v$(jq -r '.version' custom_components/nexus_conversation/manifest.json)"
           draft: false
           prerelease: false

@@ -1,11 +1,11 @@
 name: Release
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'custom_components/nexus_conversation/manifest.json'
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'custom_components/nexus_conversation/manifest.json'
 
   workflow_dispatch:
     inputs:

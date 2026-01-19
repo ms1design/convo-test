@@ -77,12 +77,18 @@ jobs:
           git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/$GITHUB_REPOSITORY
           git push
 
+      - name: Create Git tag
+        run: |
+          NEW_VERSION="$(jq -r '.version' custom_components/nexus_conversation/manifest.json)"
+          git tag "v$NEW_VERSION"
+          git push origin "v$NEW_VERSION"
+
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GH_PAT }}
           name: "v$(jq -r '.version' custom_components/nexus_conversation/manifest.json)"
-          tag: "$(jq -r '.version' custom_components/nexus_conversation/manifest.json)"
+          tag: "v$(jq -r '.version' custom_components/nexus_conversation/manifest.json)"
           body: "Release v$(jq -r '.version' custom_components/nexus_conversation/manifest.json)"
           draft: false
           prerelease: false

@@ -6,9 +6,10 @@ on:
       version:
         description: 'Version to set (optional). If not provided, the patch version will be incremented.'
         required: false
-  # push:
-  #   branches:
-  #     - main
+        default: ''
+  push:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -20,13 +21,20 @@ jobs:
     if: ${{ github.actor != 'github-actions[bot]' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
+      - name: Install uv and persist PATH
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies
-        run: uv install
+      - name: Create virtual environment (uv venv)
+        run: uv venv
+
+      - name: Install test deps
+        run: uv pip install -r requirements.txt
 
       - name: HACS validation
         uses: hacs/action@main
@@ -43,54 +51,89 @@ jobs:
     if: ${{ github.actor != 'github-actions[bot]' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
+      - name: Install uv and persist PATH
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies
-        run: uv install
+      - name: Create virtual environment (uv venv)
+        run: uv venv
 
-      - name: Install jq
+      - name: Install runtime deps
+        run: uv pip install -r requirements.txt
+
+      - name: Ensure jq is available
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Determine version
+      - name: Determine version (use input or bump patch)
         id: get_version
+        shell: bash
         run: |
-          if [ "${{ github.event.inputs.version }}" != "" ]; then
+          set -euo pipefail
+
+          # Prefer explicit workflow_dispatch input if provided
+          if [ -n "${{ github.event.inputs.version }}" ]; then
             version="${{ github.event.inputs.version }}"
           else
-            version=$(jq -r '.version' custom_components/nexus_conversation/manifest.json)
-            IFS='.' read -r major minor patch <<< "$version"
-            patch=$((patch+1))
-            version="$major.$minor.$patch"
+            current=$(jq -r '.version' custom_components/nexus_conversation/manifest.json)
+            # parse MAJOR.MINOR.PATCH (fallback to 0.0.0)
+            IFS='.' read -r MAJOR MINOR PATCH <<< "${current:-0.0.0}"
+            PATCH=$((PATCH + 1))
+            version="$MAJOR.$MINOR.$PATCH"
           fi
-          echo "version=$version" >> $GITHUB_OUTPUT
 
-      - name: Update manifest.json
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Determined version: $version"
+
+      - name: Update manifest.json with new version
         run: |
-          jq --arg ver "${{ steps.get_version.outputs.version }}" '.version = $ver' custom_components/nexus_conversation/manifest.json > manifest.tmp
-          mv manifest.tmp custom_components/nexus_conversation/manifest.json
+          jq --arg ver "${{ steps.get_version.outputs.version }}" '.version = $ver' custom_components/nexus_conversation/manifest.json > /tmp/manifest.json
+          mv /tmp/manifest.json custom_components/nexus_conversation/manifest.json
+          echo "Updated manifest.json to version ${{ steps.get_version.outputs.version }}"
 
-      - name: Commit and push changes
-        run: |
-          git config --global user.email "[email protected]"
-          git config --global user.name "github-actions[bot]"
-          git remote set-url origin "https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git"
-          git add custom_components/nexus_conversation/manifest.json
-          git commit -m "Bump version to ${{ steps.get_version.outputs.version }}"
-          git tag -a "${{ steps.get_version.outputs.version }}" -m "Release ${{ steps.get_version.outputs.version }}"
-          git push origin HEAD
-          git push origin "${{ steps.get_version.outputs.version }}"
-
-      - name: Create GitHub release
-        uses: actions/create-release@v1
+      - name: Commit, tag and push
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          set -euo pipefail
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add custom_components/nexus_conversation/manifest.json
+          # commit only if something changed
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update version to ${{ steps.get_version.outputs.version }}"
+          fi
+
+          # Use PAT to push
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
+
+          # push branch (current HEAD). This will allow manifest change to be pushed on merge workflow runs as well.
+          git push origin HEAD
+
+          TAG="v${{ steps.get_version.outputs.version }}"
+          # create tag only if it doesn't already exist
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping tag creation"
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
+
+      - name: Create GitHub Release
+        uses: ncipollo/[email protected]
         with:
-          tag_name: ${{ steps.get_version.outputs.version }}
-          release_name: Release ${{ steps.get_version.outputs.version }}
-          body: Release ${{ steps.get_version.outputs.version }}
+          token: ${{ secrets.GH_PAT }}
+          name: "v${{ steps.get_version.outputs.version }}"
+          tag: "v${{ steps.get_version.outputs.version }}"
+          body: "Release v${{ steps.get_version.outputs.version }}"
+          draft: false
+          prerelease: false
+          generateReleaseNotes: true
+          allowUpdates: true

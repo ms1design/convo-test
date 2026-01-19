@@ -1,14 +1,21 @@
 {
   "domain": "nexus_conversation",
   "name": "Nexus",
-  "after_dependencies": ["assist_pipeline", "intent"],
+  "after_dependencies": [
+    "assist_pipeline",
+    "intent"
+  ],
   "codeowners": [],
   "config_flow": true,
-  "dependencies": ["conversation"],
+  "dependencies": [
+    "conversation"
+  ],
   "documentation": "https://github.com/FutureProofHomes/Internal-Nexus-Home-Assistant-Conversation",
   "integration_type": "service",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/FutureProofHomes/Internal-Nexus-Home-Assistant-Conversation/issues",
-  "requirements": ["openai"],
-  "version": "0.0.1"
+  "requirements": [
+    "openai"
+  ],
+  "version": "0.0.2"
 }

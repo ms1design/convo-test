@@ -86,4 +86,4 @@ jobs:
           body: "Release v$(jq -r '.version' custom_components/nexus_conversation/manifest.json)"
           draft: false
           prerelease: false
-          generate_release_notes: true
+          generateReleaseNotes: true

@@ -4,11 +4,23 @@
 
 ## Development
 
-Create and activate virtual environment:
+For detailed development setup and running linting/validation locally, see [DEVELOPMENT.md](DEVELOPMENT.md).
+
+Quick setup:
 ```bash
 uv venv --python 3.13
 source .venv/bin/activate
 uv pip install -r requirements.txt
+```
+
+Run linter:
+```bash
+python -m ruff check .
+```
+
+Run formatter:
+```bash
+python -m ruff format .
 ```
 
 ## Usage

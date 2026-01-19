@@ -7,9 +7,10 @@ on:
         description: 'Version to set (optional). If not provided, the patch version will be incremented.'
         required: false
         default: ''
-  # push:
-  #   branches:
-  #     - main
+  pull_request:
+    types: [closed]
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -18,7 +19,8 @@ jobs:
   validate:
     name: Validate HACS & hassfest
     runs-on: ubuntu-latest
-    if: ${{ github.actor != 'github-actions[bot]' }}
+    # run only on manual dispatch OR when a PR was closed (we'll check merged below)
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,7 +50,7 @@ jobs:
     name: Bump version and create release
     runs-on: ubuntu-latest
     needs: validate
-    if: ${{ github.actor != 'github-actions[bot]' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -103,22 +105,23 @@ jobs:
           set -euo pipefail
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+
           git add custom_components/nexus_conversation/manifest.json
-          # commit only if something changed
+
+          # commit only if something changed; include [skip ci] to avoid accidental reruns if you ever enable push triggers
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore: update version to ${{ steps.get_version.outputs.version }}"
+            git commit -m "chore: update version to ${{ steps.get_version.outputs.version }} [skip ci]"
           fi
 
-          # Use PAT to push
+          # use the PAT to push (persist-credentials was false)
           git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
 
-          # push branch (current HEAD). This will allow manifest change to be pushed on merge workflow runs as well.
+          # push current branch (this will push the manifest change if run on workflow_dispatch)
           git push origin HEAD
 
           TAG="v${{ steps.get_version.outputs.version }}"
-          # create tag only if it doesn't already exist
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "Tag $TAG already exists, skipping tag creation"
           else

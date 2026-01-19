@@ -127,7 +127,7 @@ jobs:
           fi
 
       - name: Create GitHub Release
-        uses: ncipollo/[email protected]
+        uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GH_PAT }}
           name: "v${{ steps.get_version.outputs.version }}"

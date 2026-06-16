@@ -7,7 +7,7 @@ Overrides async_setup_entry to inject base_url into the OpenAI client.
 import openai
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_KEY
+from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
@@ -15,6 +15,7 @@ from homeassistant.exceptions import (
 )
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.httpx_client import get_async_client
+from homeassistant.helpers.typing import ConfigType
 
 from .const import CONF_BASE_URL, DOMAIN
 
@@ -24,8 +25,10 @@ from .const import CONF_BASE_URL, DOMAIN
 from homeassistant.components.openai_conversation import (  # noqa: F401,E402
     async_migrate_integration,
     async_update_options,
-    PLATFORMS,
 )
+
+# Subset of HA core platforms — exclude STT/TTS (no platform modules in shim)
+PLATFORMS = (Platform.AI_TASK, Platform.CONVERSATION)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 

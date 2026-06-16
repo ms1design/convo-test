@@ -3,7 +3,8 @@
   "name": "Nexus",
   "after_dependencies": [
     "assist_pipeline",
-    "intent"
+    "intent",
+    "openai_conversation"
   ],
   "codeowners": [
     "@ms1design"
@@ -19,6 +20,5 @@
   "requirements": [
     "openai>=2.21.0,<3"
   ],
-  "version": "0.0.39",
-  "logo": "https://raw.githubusercontent.com/ms1design/convo-test/main/icons/logo.png"
+  "version": "0.0.39"
 }

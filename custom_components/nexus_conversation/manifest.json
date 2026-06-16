@@ -19,5 +19,6 @@
   "requirements": [
     "openai>=2.21.0,<3"
   ],
-  "version": "0.0.37"
+  "version": "0.0.37",
+  "logo": "https://cdn.jsdelivr.net/gh/ms1design/convo-test@main/icons/logo.png"
 }

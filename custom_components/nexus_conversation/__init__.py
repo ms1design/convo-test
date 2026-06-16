@@ -14,8 +14,10 @@ from homeassistant.exceptions import (
     ConfigEntryNotReady,
 )
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.loader import async_get_loaded_integration
 
 from .const import CONF_BASE_URL, DOMAIN
 
@@ -60,7 +62,35 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.runtime_data = client
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Manually set up platforms using our integration's platform modules.
+    # We cannot use async_forward_entry_setups because it loads platforms from
+    # our component but then calls the CORE component's async_setup_entry,
+    # which tries to find a platform named "nexus_conversation" within the
+    # core domain (conversation or ai_task) — that doesn't exist.
+    integration = await async_get_loaded_integration(hass, DOMAIN)
+    registry = er.async_get(hass)
+
+    for plat in PLATFORMS:
+        platform_module = await integration.async_get_platform(plat)
+        collected: list = []
+
+        async def _collector(entities, **kwargs):  # noqa: ANN001,ANN003
+            for e in entities if isinstance(entities, list) else list(entities):
+                collected.append(e)
+
+        await platform_module.async_setup_entry(hass, entry, _collector)
+
+        # Register collected entities with the framework
+        for entity in collected:
+            reg_entry = registry.async_get_or_create(
+                DOMAIN,
+                plat,
+                entity.unique_id,
+                config_entry=entry,
+            )
+            entity.entity_id = reg_entry.entity_id
+            entity.hass = hass
+            entity.available = True
 
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 

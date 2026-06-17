@@ -19,5 +19,5 @@
   "requirements": [
     "openai==2.21.0"
   ],
-  "version": "0.0.44"
+  "version": "0.0.45"
 }

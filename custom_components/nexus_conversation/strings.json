@@ -24,9 +24,9 @@
           "api_key": "[%key:common::config_flow::data::api_key%]"
         },
         "data_description": {
-          "api_key": "Your OpenAI API key."
+          "api_key": "Your Nexus API key."
         },
-        "description": "Set up OpenAI Conversation integration by providing your OpenAI API key. Instructions to obtain an API key can be found [here]({instructions_url})."
+        "description": "Set up Nexus integration by providing your API key. Instructions to obtain an API key can be found [here]({instructions_url})."
       }
     }
   },
@@ -272,7 +272,7 @@
   },
   "services": {
     "generate_content": {
-      "description": "Sends a conversational query to ChatGPT including any attached image or PDF files (deprecated)",
+      "description": "Sends a conversational query to Nexus including any attached image or PDF files (deprecated)",
       "fields": {
         "config_entry": {
           "description": "The config entry to use for this action",

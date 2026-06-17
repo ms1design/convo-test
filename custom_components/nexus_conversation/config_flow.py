@@ -105,6 +105,7 @@ _LOGGER = logging.getLogger(__name__)
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
+        vol.Required(CONF_BASE_URL, default="https://api.openai.com/v1"): str,
         vol.Required(CONF_API_KEY): str,
     }
 )
@@ -116,7 +117,9 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
     client = openai.AsyncOpenAI(
-        api_key=data[CONF_API_KEY], http_client=get_async_client(hass)
+        api_key=data[CONF_API_KEY],
+        base_url=data.get(CONF_BASE_URL),
+        http_client=get_async_client(hass),
     )
     await client.models.list(timeout=10.0)
 
@@ -151,7 +154,7 @@ class OpenAIConfigFlow(ConfigFlow, domain=DOMAIN):
                         self._get_reauth_entry(), data_updates=user_input
                     )
                 return self.async_create_entry(
-                    title="ChatGPT",
+                    title="Nexus",
                     data=user_input,
                     subentries=[
                         {
@@ -188,7 +191,7 @@ class OpenAIConfigFlow(ConfigFlow, domain=DOMAIN):
             ),
             errors=errors,
             description_placeholders={
-                "instructions_url": "https://www.home-assistant.io/integrations/openai_conversation/#generate-an-api-key",
+                "instructions_url": "https://github.com/ms1design/convo-test",
             },
         )
 
@@ -630,6 +633,7 @@ class OpenAISubentryFlowHandler(ConfigSubentryFlow):
         if zone_home is not None:
             client = openai.AsyncOpenAI(
                 api_key=self._get_entry().data[CONF_API_KEY],
+                base_url=self._get_entry().data.get(CONF_BASE_URL),
                 http_client=get_async_client(self.hass),
             )
             location_schema = vol.Schema(

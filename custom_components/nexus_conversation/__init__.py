@@ -276,7 +276,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> bool:
     """Set up Nexus Conversation from a config entry."""
-    # Build OpenAI client with base_url support
+    # Build LLM client with base_url support
     base_url = entry.data.get(CONF_BASE_URL)
     if base_url == "":
         base_url = None

@@ -690,7 +690,7 @@ class NexusBaseLLMEntity(Entity):
                     and err.type == "insufficient_quota"
                 ):
                     LOGGER.error("Provider billing error: %s", err)
-                    raise HomeAssistantError("Insufficient funds for OpenAI") from err
+                    raise HomeAssistantError("Insufficient funds for provider") from err
                 if "Verify Organization" in str(err):
                     ir.async_create_issue(
                         self.hass,
@@ -733,8 +733,7 @@ async def async_prepare_files_for_prompt(
 
             if not mime_type or not mime_type.startswith(("image/", "application/pdf")):
                 raise HomeAssistantError(
-                    "Only images and PDF are supported by the OpenAI API,"
-                    f"`{file_path}` is not an image file or PDF"
+                    "Only images and PDFs are supported as file inputs,"
                 )
 
             base64_file = base64.b64encode(file_path.read_bytes()).decode("utf-8")

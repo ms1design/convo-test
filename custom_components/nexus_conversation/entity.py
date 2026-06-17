@@ -97,7 +97,6 @@ from .const import (
     RECOMMENDED_REASONING_SUMMARY,
     RECOMMENDED_SERVICE_TIER,
     RECOMMENDED_STORE_RESPONSES,
-    RECOMMENDED_STT_MODEL,
     RECOMMENDED_TEMPERATURE,
     RECOMMENDED_TOP_P,
     RECOMMENDED_VERBOSITY,
@@ -454,7 +453,7 @@ async def _transform_stream(  # noqa: C901 - This is complex, but better to have
             elif reason == "content_filter":
                 reason = "content filter triggered"
 
-            raise HomeAssistantError(f"OpenAI response incomplete: {reason}")
+            raise HomeAssistantError(f"Response incomplete: {reason}")
         elif isinstance(event, ResponseFailedEvent):
             if event.response.usage is not None:
                 chat_log.async_trace(
@@ -468,9 +467,9 @@ async def _transform_stream(  # noqa: C901 - This is complex, but better to have
             reason = "unknown reason"
             if event.response.error is not None:
                 reason = event.response.error.message
-            raise HomeAssistantError(f"OpenAI response failed: {reason}")
+            raise HomeAssistantError(f"Response failed: {reason}")
         elif isinstance(event, ResponseErrorEvent):
-            raise HomeAssistantError(f"OpenAI response error: {event.message}")
+            raise HomeAssistantError(f"Response error: {event.message}")
 
 
 class OpenAIBaseLLMEntity(Entity):
@@ -490,9 +489,7 @@ class OpenAIBaseLLMEntity(Entity):
             manufacturer="OpenAI",
             model=subentry.data.get(
                 CONF_CHAT_MODEL,
-                RECOMMENDED_CHAT_MODEL
-                if subentry.subentry_type != "stt"
-                else RECOMMENDED_STT_MODEL,
+                RECOMMENDED_CHAT_MODEL,
             ),
             entry_type=dr.DeviceEntryType.SERVICE,
         )

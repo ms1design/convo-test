@@ -113,12 +113,12 @@
           "data": {
             "chat_model": "[%key:common::generic::model%]",
             "max_tokens": "Maximum tokens to return in response",
-            "store_responses": "Store requests and responses in OpenAI",
+            "store_responses": "Store requests and responses in Nexus",
             "temperature": "Temperature",
             "top_p": "Top P"
           },
           "data_description": {
-            "store_responses": "If enabled, requests and responses are stored by OpenAI and visible in your OpenAI dashboard logs"
+            "store_responses": "If enabled, requests and responses are stored by Nexus and visible in your Nexus dashboard logs"
           },
           "title": "Advanced settings"
         },
@@ -216,11 +216,11 @@
   },
   "issues": {
     "deprecated_generate_content": {
-      "description": "Action 'openai_conversation.generate_content' is deprecated and will be removed in the 2026.9.0 release. Please use the 'ai_task.generate_data' action instead",
+      "description": "Action 'nexus_conversation.generate_content' is deprecated and will be removed in the 2026.9.0 release. Please use the 'ai_task.generate_data' action instead",
       "title": "Deprecated 'generate_content' action"
     },
     "deprecated_generate_image": {
-      "description": "Action 'openai_conversation.generate_image' is deprecated and will be removed in the 2026.9.0 release. Please use the 'ai_task.generate_image' action instead",
+      "description": "Action 'nexus_conversation.generate_image' is deprecated and will be removed in the 2026.9.0 release. Please use the 'ai_task.generate_image' action instead",
       "title": "Deprecated 'generate_image' action"
     },
     "organization_verification_required": {

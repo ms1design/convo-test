@@ -3,8 +3,7 @@
   "name": "Nexus",
   "after_dependencies": [
     "assist_pipeline",
-    "intent",
-    "openai_conversation"
+    "intent"
   ],
   "codeowners": [
     "@ms1design"
@@ -18,7 +17,7 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/ms1design/convo-test/issues",
   "requirements": [
-    "openai>=2.21.0,<3"
+    "openai==2.21.0"
   ],
   "version": "0.0.44"
 }

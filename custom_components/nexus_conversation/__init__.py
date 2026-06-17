@@ -1,6 +1,7 @@
 """The Nexus Conversation integration."""
 
 from pathlib import Path
+from types import MappingProxyType
 
 import openai
 from openai.types.images_response import ImagesResponse
@@ -13,7 +14,7 @@ from openai.types.responses import (
 )
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import CONF_API_KEY, CONF_PROMPT, Platform
 from homeassistant.core import (
     HomeAssistant,
@@ -29,6 +30,9 @@ from homeassistant.exceptions import (
 )
 from homeassistant.helpers import (
     config_validation as cv,
+    device_registry as dr,
+    entity_registry as er,
+    issue_registry as ir,
     selector,
 )
 from homeassistant.helpers.httpx_client import get_async_client
@@ -44,8 +48,10 @@ from .const import (
     CONF_STORE_RESPONSES,
     CONF_TEMPERATURE,
     CONF_TOP_P,
+    DEFAULT_AI_TASK_NAME,
     DOMAIN,
     LOGGER,
+    RECOMMENDED_AI_TASK_OPTIONS,
     RECOMMENDED_CHAT_MODEL,
     RECOMMENDED_MAX_TOKENS,
     RECOMMENDED_REASONING_EFFORT,
@@ -64,15 +70,13 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 type NexusConfigEntry = ConfigEntry[openai.AsyncClient]
 
-# Alias for platform modules that import from .
-OpenAIConfigEntry = NexusConfigEntry
-
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up Nexus Conversation."""
+    await async_migrate_integration(hass)
 
     async def render_image(call: ServiceCall) -> ServiceResponse:
-        """Render an image with dall-e."""
+        """Generate an image with the configured model."""
         LOGGER.warning(
             "Action '%s.%s' is deprecated and will be removed in the 2026.9.0 release. "
             "Please use the 'ai_task.generate_image' action instead",
@@ -273,9 +277,12 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> bool:
     """Set up Nexus Conversation from a config entry."""
     # Build OpenAI client with base_url support
+    base_url = entry.data.get(CONF_BASE_URL)
+    if base_url == "":
+        base_url = None
     client = openai.AsyncOpenAI(
         api_key=entry.data[CONF_API_KEY],
-        base_url=entry.data.get(CONF_BASE_URL),
+        base_url=base_url,
         http_client=get_async_client(hass),
     )
 
@@ -309,12 +316,178 @@ async def async_update_options(hass: HomeAssistant, entry: NexusConfigEntry) -> 
     await hass.config_entries.async_reload(entry.entry_id)
 
 
+async def async_migrate_integration(hass: HomeAssistant) -> None:
+    """Migrate integration entry structure."""
+
+    # Make sure we get enabled config entries first
+    entries = sorted(
+        hass.config_entries.async_entries(DOMAIN),
+        key=lambda e: e.disabled_by is not None,
+    )
+    if not any(entry.version == 1 for entry in entries):
+        return
+
+    api_keys_entries: dict[str, tuple[NexusConfigEntry, bool]] = {}
+    entity_registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
+
+    for entry in entries:
+        use_existing = False
+        subentry = ConfigSubentry(
+            data=entry.options,
+            subentry_type="conversation",
+            title="Nexus",
+            unique_id=None,
+        )
+        if entry.data[CONF_API_KEY] not in api_keys_entries:
+            use_existing = True
+            all_disabled = all(
+                e.disabled_by is not None
+                for e in entries
+                if e.data[CONF_API_KEY] == entry.data[CONF_API_KEY]
+            )
+            api_keys_entries[entry.data[CONF_API_KEY]] = (entry, all_disabled)
+
+        parent_entry, all_disabled = api_keys_entries[entry.data[CONF_API_KEY]]
+
+        hass.config_entries.async_add_subentry(parent_entry, subentry)
+        conversation_entity_id = entity_registry.async_get_entity_id(
+            "conversation",
+            DOMAIN,
+            entry.entry_id,
+        )
+        device = device_registry.async_get_device(
+            identifiers={(DOMAIN, entry.entry_id)}
+        )
+
+        if conversation_entity_id is not None:
+            conversation_entity_entry = entity_registry.entities[conversation_entity_id]
+            entity_disabled_by = conversation_entity_entry.disabled_by
+            if (
+                entity_disabled_by is er.RegistryEntryDisabler.CONFIG_ENTRY
+                and not all_disabled
+            ):
+                # Device and entity registries will set the disabled_by flag to None
+                # when moving a device or entity disabled by CONFIG_ENTRY to an enabled
+                # config entry, but we want to set it to DEVICE or USER instead,
+                entity_disabled_by = (
+                    er.RegistryEntryDisabler.DEVICE
+                    if device
+                    else er.RegistryEntryDisabler.USER
+                )
+            entity_registry.async_update_entity(
+                conversation_entity_id,
+                config_entry_id=parent_entry.entry_id,
+                config_subentry_id=subentry.subentry_id,
+                disabled_by=entity_disabled_by,
+                new_unique_id=subentry.subentry_id,
+            )
+
+        if device is not None:
+            # Device and entity registries will set the disabled_by flag to None
+            # when moving a device or entity disabled by CONFIG_ENTRY to an enabled
+            # config entry, but we want to set it to USER instead,
+            device_disabled_by = device.disabled_by
+            if (
+                device.disabled_by is dr.DeviceEntryDisabler.CONFIG_ENTRY
+                and not all_disabled
+            ):
+                device_disabled_by = dr.DeviceEntryDisabler.USER
+            device_registry.async_update_device(
+                device.id,
+                disabled_by=device_disabled_by,
+                new_identifiers={(DOMAIN, subentry.subentry_id)},
+                add_config_subentry_id=subentry.subentry_id,
+                add_config_entry_id=parent_entry.entry_id,
+            )
+            if parent_entry.entry_id != entry.entry_id:
+                device_registry.async_update_device(
+                    device.id,
+                    remove_config_entry_id=entry.entry_id,
+                )
+            else:
+                device_registry.async_update_device(
+                    device.id,
+                    remove_config_entry_id=entry.entry_id,
+                    remove_config_subentry_id=None,
+                )
+
+        if not use_existing:
+            await hass.config_entries.async_remove(entry.entry_id)
+        else:
+            _add_ai_task_subentry(hass, entry)
+            hass.config_entries.async_update_entry(
+                entry,
+                title="Nexus",
+                options={},
+                version=2,
+                minor_version=7,
+            )
+
+
 async def async_migrate_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> bool:
     """Migrate entry."""
     LOGGER.debug("Migrating from version %s:%s", entry.version, entry.minor_version)
 
     if entry.version == 2 and entry.minor_version == 1:
-        # Fix reasoning_summary enum change (short→concise, gpt-5 constraint)
+        # Correct broken device migration in Home Assistant Core 2025.7.0b0-2025.7.0b1
+        device_registry = dr.async_get(hass)
+        for device in dr.async_entries_for_config_entry(
+            device_registry, entry.entry_id
+        ):
+            device_registry.async_update_device(
+                device.id,
+                remove_config_entry_id=entry.entry_id,
+                remove_config_subentry_id=None,
+            )
+
+        hass.config_entries.async_update_entry(entry, minor_version=2)
+
+    if entry.version == 2 and entry.minor_version == 2:
+        _add_ai_task_subentry(hass, entry)
+        hass.config_entries.async_update_entry(entry, minor_version=3)
+
+    if entry.version == 2 and entry.minor_version == 3:
+        # Fix migration where the disabled_by flag was not set correctly.
+        # We can currently only correct this for enabled config entries,
+        # because migration does not run for disabled config entries. This
+        # is asserted in tests, and if that behavior is changed, we should
+        # correct also disabled config entries.
+        device_registry = dr.async_get(hass)
+        entity_registry = er.async_get(hass)
+        devices = dr.async_entries_for_config_entry(device_registry, entry.entry_id)
+        entity_entries = er.async_entries_for_config_entry(
+            entity_registry, entry.entry_id
+        )
+        if entry.disabled_by is None:
+            # If the config entry is not disabled, we need to set the disabled_by
+            # flag on devices to USER, and on entities to DEVICE, if they are set
+            # to CONFIG_ENTRY.
+            for device in devices:
+                if device.disabled_by is not dr.DeviceEntryDisabler.CONFIG_ENTRY:
+                    continue
+                device_registry.async_update_device(
+                    device.id,
+                    disabled_by=dr.DeviceEntryDisabler.USER,
+                )
+            for entity in entity_entries:
+                if entity.disabled_by is not er.RegistryEntryDisabler.CONFIG_ENTRY:
+                    continue
+                entity_registry.async_update_entity(
+                    entity.entity_id,
+                    disabled_by=er.RegistryEntryDisabler.DEVICE,
+                )
+        hass.config_entries.async_update_entry(entry, minor_version=4)
+
+    if entry.version == 2 and entry.minor_version == 4:
+        # Was STT subentry (skipped in fork) — bump to minor_version 5
+        hass.config_entries.async_update_entry(entry, minor_version=5)
+
+    if entry.version == 2 and entry.minor_version == 5:
+        # Was TTS subentry (skipped in fork) — bump to minor_version 6
+        hass.config_entries.async_update_entry(entry, minor_version=6)
+
+    if entry.version == 2 and entry.minor_version == 6:
         for subentry in entry.subentries.values():
             if subentry.subentry_type in ("conversation", "ai_task_data"):
                 data = dict(subentry.data)
@@ -331,10 +504,23 @@ async def async_migrate_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> b
                     hass.config_entries.async_update_subentry(
                         entry, subentry, data=data
                     )
-        hass.config_entries.async_update_entry(entry, minor_version=2)
+        hass.config_entries.async_update_entry(entry, minor_version=7)
 
     LOGGER.debug(
         "Migration to version %s:%s successful", entry.version, entry.minor_version
     )
 
     return True
+
+
+def _add_ai_task_subentry(hass: HomeAssistant, entry: NexusConfigEntry) -> None:
+    """Add AI Task subentry to the config entry."""
+    hass.config_entries.async_add_subentry(
+        entry,
+        ConfigSubentry(
+            data=MappingProxyType(RECOMMENDED_AI_TASK_OPTIONS),
+            subentry_type="ai_task_data",
+            title=DEFAULT_AI_TASK_NAME,
+            unique_id=None,
+        ),
+    )

@@ -10,7 +10,6 @@ LOGGER: logging.Logger = logging.getLogger(__package__)
 
 DEFAULT_CONVERSATION_NAME = "Nexus Conversation"
 DEFAULT_AI_TASK_NAME = "Nexus AI Task"
-DEFAULT_NAME = "Nexus Conversation"
 
 CONF_BASE_URL = "base_url"
 CONF_CHAT_MODEL = "chat_model"

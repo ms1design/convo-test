@@ -1,4 +1,4 @@
-"""AI Task integration for OpenAI."""
+"""AI Task integration for Nexus."""
 
 import base64
 from json import JSONDecodeError
@@ -20,19 +20,19 @@ from .const import (
     RECOMMENDED_IMAGE_MODEL,
     UNSUPPORTED_IMAGE_MODELS,
 )
-from .entity import OpenAIBaseLLMEntity
+from .entity import NexusBaseLLMEntity
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigSubentry
 
-    from . import OpenAIConfigEntry
+    from . import NexusConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: OpenAIConfigEntry,
+    config_entry: NexusConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up AI Task entities."""
@@ -41,18 +41,18 @@ async def async_setup_entry(
             continue
 
         async_add_entities(
-            [OpenAITaskEntity(config_entry, subentry)],
+            [NexusTaskEntity(config_entry, subentry)],
             config_subentry_id=subentry.subentry_id,
         )
 
 
-class OpenAITaskEntity(
+class NexusTaskEntity(
     ai_task.AITaskEntity,
-    OpenAIBaseLLMEntity,
+    NexusBaseLLMEntity,
 ):
-    """OpenAI AI Task entity."""
+    """Nexus AI Task entity."""
 
-    def __init__(self, entry: OpenAIConfigEntry, subentry: ConfigSubentry) -> None:
+    def __init__(self, entry: NexusConfigEntry, subentry: ConfigSubentry) -> None:
         """Initialize the entity."""
         super().__init__(entry, subentry)
         self._attr_supported_features = (
@@ -93,7 +93,7 @@ class OpenAITaskEntity(
                 err,
                 text,
             )
-            raise HomeAssistantError("Error with OpenAI structured response") from err
+            raise HomeAssistantError("Error generating structured response") from err
 
         return ai_task.GenDataTaskResult(
             conversation_id=chat_log.conversation_id,
@@ -105,7 +105,7 @@ class OpenAITaskEntity(
         task: ai_task.GenImageTask,
         chat_log: conversation.ChatLog,
     ) -> ai_task.GenImageTaskResult:
-        """Handle a generate image task."""
+        """Generate an image with the configured model."""
         await self._async_handle_chat_log(chat_log, task.name, force_image=True)
 
         if not isinstance(chat_log.content[-1], conversation.AssistantContent):

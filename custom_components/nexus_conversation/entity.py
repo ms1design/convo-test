@@ -1,4 +1,4 @@
-"""Base entity for OpenAI."""
+"""Base entity for Nexus."""
 
 import base64
 from collections.abc import AsyncGenerator, Callable, Iterable
@@ -106,7 +106,7 @@ from .const import (
 )
 
 if TYPE_CHECKING:
-    from . import OpenAIConfigEntry
+    from . import NexusConfigEntry
 
 
 # Max number of back and forth with the LLM to generate a response
@@ -472,13 +472,13 @@ async def _transform_stream(  # noqa: C901 - This is complex, but better to have
             raise HomeAssistantError(f"Response error: {event.message}")
 
 
-class OpenAIBaseLLMEntity(Entity):
-    """OpenAI conversation agent."""
+class NexusBaseLLMEntity(Entity):
+    """Nexus conversation agent."""
 
     _attr_has_entity_name = True
     _attr_name: str | None = None
 
-    def __init__(self, entry: OpenAIConfigEntry, subentry: ConfigSubentry) -> None:
+    def __init__(self, entry: NexusConfigEntry, subentry: ConfigSubentry) -> None:
         """Initialize the entity."""
         self.entry = entry
         self.subentry = subentry
@@ -486,7 +486,7 @@ class OpenAIBaseLLMEntity(Entity):
         self._attr_device_info = dr.DeviceInfo(
             identifiers={(DOMAIN, subentry.subentry_id)},
             name=subentry.title,
-            manufacturer="OpenAI",
+            manufacturer="Nexus",
             model=subentry.data.get(
                 CONF_CHAT_MODEL,
                 RECOMMENDED_CHAT_MODEL,
@@ -682,14 +682,14 @@ class OpenAIBaseLLMEntity(Entity):
                     )
                     model_args["service_tier"] = "default"
                     continue
-                LOGGER.error("Rate limited by OpenAI: %s", err)
+                LOGGER.error("Rate limited by provider: %s", err)
                 raise HomeAssistantError("Rate limited or insufficient funds") from err
             except openai.OpenAIError as err:
                 if (
                     isinstance(err, openai.APIError)
                     and err.type == "insufficient_quota"
                 ):
-                    LOGGER.error("Insufficient funds for OpenAI: %s", err)
+                    LOGGER.error("Provider billing error: %s", err)
                     raise HomeAssistantError("Insufficient funds for OpenAI") from err
                 if "Verify Organization" in str(err):
                     ir.async_create_issue(
@@ -706,7 +706,7 @@ class OpenAIBaseLLMEntity(Entity):
                         },
                     )
 
-                LOGGER.error("Error talking to OpenAI: %s", err)
+                LOGGER.error("Provider communication error: %s", err)
                 raise HomeAssistantError("Error talking to OpenAI") from err
 
             if not chat_log.unresponded_tool_results:

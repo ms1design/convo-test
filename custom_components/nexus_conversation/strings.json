@@ -15,7 +15,7 @@
           "api_key": "[%key:common::config_flow::data::api_key%]"
         },
         "data_description": {
-          "api_key": "[%key:component::openai_conversation::config::step::user::data_description::api_key%]"
+          "api_key": "Your Nexus API key."
         },
         "description": "Reauthentication required. Please enter your updated API key."
       },
@@ -33,14 +33,14 @@
   "config_subentries": {
     "ai_task_data": {
       "abort": {
-        "entry_not_loaded": "[%key:component::openai_conversation::config_subentries::conversation::abort::entry_not_loaded%]",
+        "entry_not_loaded": "[%key:component::nexus_conversation::config_subentries::conversation::abort::entry_not_loaded%]",
         "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"
       },
       "entry_type": "AI task",
       "error": {
-        "code_interpreter_minimal_reasoning": "[%key:component::openai_conversation::config_subentries::conversation::error::code_interpreter_minimal_reasoning%]",
-        "model_not_supported": "[%key:component::openai_conversation::config_subentries::conversation::error::model_not_supported%]",
-        "web_search_minimal_reasoning": "[%key:component::openai_conversation::config_subentries::conversation::error::web_search_minimal_reasoning%]"
+        "code_interpreter_minimal_reasoning": "[%key:component::nexus_conversation::config_subentries::conversation::error::code_interpreter_minimal_reasoning%]",
+        "model_not_supported": "[%key:component::nexus_conversation::config_subentries::conversation::error::model_not_supported%]",
+        "web_search_minimal_reasoning": "[%key:component::nexus_conversation::config_subentries::conversation::error::web_search_minimal_reasoning%]"
       },
       "initiate_flow": {
         "reconfigure": "Reconfigure AI task",
@@ -50,46 +50,46 @@
         "advanced": {
           "data": {
             "chat_model": "[%key:common::generic::model%]",
-            "max_tokens": "[%key:component::openai_conversation::config_subentries::conversation::step::advanced::data::max_tokens%]",
-            "store_responses": "[%key:component::openai_conversation::config_subentries::conversation::step::advanced::data::store_responses%]",
-            "temperature": "[%key:component::openai_conversation::config_subentries::conversation::step::advanced::data::temperature%]",
-            "top_p": "[%key:component::openai_conversation::config_subentries::conversation::step::advanced::data::top_p%]"
+            "max_tokens": "[%key:component::nexus_conversation::config_subentries::conversation::step::advanced::data::max_tokens%]",
+            "store_responses": "[%key:component::nexus_conversation::config_subentries::conversation::step::advanced::data::store_responses%]",
+            "temperature": "[%key:component::nexus_conversation::config_subentries::conversation::step::advanced::data::temperature%]",
+            "top_p": "[%key:component::nexus_conversation::config_subentries::conversation::step::advanced::data::top_p%]"
           },
           "data_description": {
-            "store_responses": "[%key:component::openai_conversation::config_subentries::conversation::step::advanced::data_description::store_responses%]"
+            "store_responses": "[%key:component::nexus_conversation::config_subentries::conversation::step::advanced::data_description::store_responses%]"
           },
-          "title": "[%key:component::openai_conversation::config_subentries::conversation::step::advanced::title%]"
+          "title": "[%key:component::nexus_conversation::config_subentries::conversation::step::advanced::title%]"
         },
         "init": {
           "data": {
             "name": "[%key:common::config_flow::data::name%]",
-            "recommended": "[%key:component::openai_conversation::config_subentries::conversation::step::init::data::recommended%]"
+            "recommended": "[%key:component::nexus_conversation::config_subentries::conversation::step::init::data::recommended%]"
           }
         },
         "model": {
           "data": {
-            "code_interpreter": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data::code_interpreter%]",
-            "image_model": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data::image_model%]",
-            "inline_citations": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data::inline_citations%]",
-            "reasoning_effort": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data::reasoning_effort%]",
-            "reasoning_summary": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data::reasoning_summary%]",
-            "search_context_size": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data::search_context_size%]",
-            "service_tier": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data::service_tier%]",
-            "user_location": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data::user_location%]",
-            "web_search": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data::web_search%]"
+            "code_interpreter": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data::code_interpreter%]",
+            "image_model": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data::image_model%]",
+            "inline_citations": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data::inline_citations%]",
+            "reasoning_effort": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data::reasoning_effort%]",
+            "reasoning_summary": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data::reasoning_summary%]",
+            "search_context_size": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data::search_context_size%]",
+            "service_tier": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data::service_tier%]",
+            "user_location": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data::user_location%]",
+            "web_search": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data::web_search%]"
           },
           "data_description": {
-            "code_interpreter": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data_description::code_interpreter%]",
-            "image_model": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data_description::image_model%]",
-            "inline_citations": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data_description::inline_citations%]",
-            "reasoning_effort": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data_description::reasoning_effort%]",
-            "reasoning_summary": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data_description::reasoning_summary%]",
-            "search_context_size": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data_description::search_context_size%]",
-            "service_tier": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data_description::service_tier%]",
-            "user_location": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data_description::user_location%]",
-            "web_search": "[%key:component::openai_conversation::config_subentries::conversation::step::model::data_description::web_search%]"
+            "code_interpreter": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data_description::code_interpreter%]",
+            "image_model": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data_description::image_model%]",
+            "inline_citations": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data_description::inline_citations%]",
+            "reasoning_effort": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data_description::reasoning_effort%]",
+            "reasoning_summary": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data_description::reasoning_summary%]",
+            "search_context_size": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data_description::search_context_size%]",
+            "service_tier": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data_description::service_tier%]",
+            "user_location": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data_description::user_location%]",
+            "web_search": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::data_description::web_search%]"
           },
-          "title": "[%key:component::openai_conversation::config_subentries::conversation::step::model::title%]"
+          "title": "[%key:component::nexus_conversation::config_subentries::conversation::step::model::title%]"
         }
       }
     },
@@ -157,54 +157,6 @@
             "web_search": "Allow the model to search the web for the latest information before generating a response"
           },
           "title": "Model-specific options"
-        }
-      }
-    },
-    "stt": {
-      "abort": {
-        "entry_not_loaded": "[%key:component::openai_conversation::config_subentries::conversation::abort::entry_not_loaded%]",
-        "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"
-      },
-      "entry_type": "Speech-to-text",
-      "initiate_flow": {
-        "reconfigure": "Reconfigure speech-to-text service",
-        "user": "Add speech-to-text service"
-      },
-      "step": {
-        "init": {
-          "data": {
-            "chat_model": "Model",
-            "name": "[%key:common::config_flow::data::name%]",
-            "prompt": "[%key:common::config_flow::data::prompt%]"
-          },
-          "data_description": {
-            "chat_model": "The model to use to transcribe speech.",
-            "prompt": "Use this prompt to improve the quality of the transcripts. Translate to the pipeline language for best results. See the documentation for more details."
-          }
-        }
-      }
-    },
-    "tts": {
-      "abort": {
-        "entry_not_loaded": "[%key:component::openai_conversation::config_subentries::conversation::abort::entry_not_loaded%]",
-        "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"
-      },
-      "entry_type": "Text-to-speech",
-      "initiate_flow": {
-        "reconfigure": "Reconfigure text-to-speech service",
-        "user": "Add text-to-speech service"
-      },
-      "step": {
-        "init": {
-          "data": {
-            "name": "[%key:common::config_flow::data::name%]",
-            "prompt": "[%key:common::config_flow::data::prompt%]",
-            "tts_speed": "Speed"
-          },
-          "data_description": {
-            "prompt": "Control aspects of speech, including accent, emotional range, intonation, impressions, speed of speech, tone, whispering, and more",
-            "tts_speed": "Speed of the generated speech"
-          }
         }
       }
     }

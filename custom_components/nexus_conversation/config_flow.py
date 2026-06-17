@@ -4,6 +4,7 @@ from collections.abc import Mapping
 import json
 import logging
 from typing import Any
+import urllib.parse
 
 import openai
 import voluptuous as vol
@@ -96,9 +97,20 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+
+def _validate_base_url(value: str) -> str:
+    """Validate that the base_url is a valid URL."""
+    parsed = urllib.parse.urlparse(value)
+    if not parsed.scheme or not parsed.netloc:
+        raise vol.Invalid("Must be a valid URL")
+    return value
+
+
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_BASE_URL, default="https://api.openai.com/v1"): str,
+        vol.Required(
+            CONF_BASE_URL, default="https://api.openai.com/v1"
+        ): _validate_base_url,
         vol.Required(CONF_API_KEY): str,
     }
 )
@@ -200,10 +212,8 @@ class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> dict[str, type[ConfigSubentryFlow]]:
         """Return subentries supported by this integration."""
         return {
-            "conversation": OpenAISubentryFlowHandler,
-            "ai_task_data": OpenAISubentryFlowHandler,
-            "stt": OpenAISubentrySTTFlowHandler,
-            "tts": OpenAISubentryTTSFlowHandler,
+            "conversation": NexusSubentryFlowHandler,
+            "ai_task_data": NexusSubentryFlowHandler,
         }
 
 

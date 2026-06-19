@@ -69,6 +69,9 @@ class NexusTaskEntity(
         chat_log: conversation.ChatLog,
     ) -> ai_task.GenDataTaskResult:
         """Handle a generate data task."""
+        # Note: AI Tasks are programmatic (no device_id/satellite_id),
+        # so area context is not available. _async_handle_chat_log defaults
+        # to area_id=None which skips developer message + metadata injection.
         await self._async_handle_chat_log(
             chat_log, task.name, task.structure, max_iterations=1000
         )
@@ -106,6 +109,7 @@ class NexusTaskEntity(
         chat_log: conversation.ChatLog,
     ) -> ai_task.GenImageTaskResult:
         """Generate an image with the configured model."""
+        # Same note as _async_generate_data: no area context for AI Tasks.
         await self._async_handle_chat_log(chat_log, task.name, force_image=True)
 
         if not isinstance(chat_log.content[-1], conversation.AssistantContent):

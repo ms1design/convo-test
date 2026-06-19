@@ -59,7 +59,12 @@ from openai.types.responses.web_search_tool_param import UserLocation
 import voluptuous as vol
 from voluptuous_openapi import convert
 
-from homeassistant.components import conversation
+from homeassistant.components import (
+    area_registry,
+    conversation,
+    entity_registry as er,
+    floor_registry as fr,
+)
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -111,6 +116,73 @@ if TYPE_CHECKING:
 
 # Max number of back and forth with the LLM to generate a response
 MAX_TOOL_ITERATIONS = 10
+
+
+def _derive_area_context(
+    hass: HomeAssistant,
+    device_id: str | None,
+    satellite_id: str | None,
+) -> tuple[str | None, str | None, str | None]:
+    """
+    Derive area context from device/satellite registries.
+
+    Mirrors HA core's DefaultAgent._get_satellite_area_and_device() pattern.
+    Returns (area_id, area_name, floor_name) — area_name/floor_name are None
+    when the area entry lacks a name or floor association.
+    """
+    area_id: str | None = None
+
+    # Try satellite entity first (higher priority)
+    if satellite_id:
+        entity_entry = er.async_get(hass).async_get(satellite_id)
+        if entity_entry:
+            area_id = entity_entry.area_id
+            device_id = entity_entry.device_id
+
+    # Fallback to device registry
+    if area_id is None and device_id:
+        device_entry = dr.async_get(hass).async_get(device_id)
+        if device_entry:
+            area_id = device_entry.area_id
+
+    # No area resolved — return area_id=None; device_id is consumed
+    # internally and not surfaced (function contract: area_id, area_name, floor_name)
+    if area_id is None:
+        return None, None, None
+
+    # Resolve area name and floor
+    area_entry = area_registry.async_get(hass).async_get_area(area_id)
+    if area_entry is None:
+        return area_id, None, None
+
+    area_name = area_entry.name
+    floor_name: str | None = None
+
+    if area_entry.floor_id:
+        floor_entry = fr.async_get(hass).async_get_floor(area_entry.floor_id)
+        if floor_entry:
+            floor_name = floor_entry.name
+
+    return area_id, area_name, floor_name
+
+
+# Max sanitized area/floor name length for LLM prompts
+_MAX_AREA_NAME_LEN = 100
+
+
+def _sanitize_area_name(name: str | None) -> str:
+    """Truncate area/floor names to prevent prompt bloat."""
+    if not name:
+        return ""
+    if len(name) > _MAX_AREA_NAME_LEN:
+        LOGGER.warning(
+            "Area/floor name '%s' (%d chars) exceeds %d-char limit, truncating",
+            name,
+            len(name),
+            _MAX_AREA_NAME_LEN,
+        )
+        return name[:_MAX_AREA_NAME_LEN]
+    return name
 
 
 def _adjust_schema(schema: dict[str, Any]) -> None:
@@ -501,11 +573,35 @@ class NexusBaseLLMEntity(Entity):
         structure: vol.Schema | None = None,
         force_image: bool = False,
         max_iterations: int = MAX_TOOL_ITERATIONS,
+        *,
+        area_id: str | None = None,
+        area_name: str | None = None,
+        floor_name: str | None = None,
     ) -> None:
         """Generate an answer for the chat log."""
         options = self.subentry.data
 
         messages = _convert_content_to_param(chat_log.content)
+
+        # Inject area context as a developer message (precedence over user)
+        if area_name:
+            safe_area_name = _sanitize_area_name(area_name)
+            area_parts = [f"You are assisting a user in area '{safe_area_name}'."]
+            if floor_name:
+                safe_floor_name = _sanitize_area_name(floor_name)
+                area_parts.append(f"The area is located on floor '{safe_floor_name}'.")
+            area_msg: EasyInputMessageParam = {
+                "type": "message",
+                "role": "developer",
+                "content": " ".join(area_parts),
+            }
+            # Insert after any existing developer/system messages,
+            # or append at end if none exist (-1 + 1 = 0).
+            insert_after_last_directive = -1
+            for i, msg in enumerate(messages):
+                if isinstance(msg, dict) and msg.get("role") in ("developer", "system"):
+                    insert_after_last_directive = i
+            messages.insert(insert_after_last_directive + 1, area_msg)
 
         model_args = ResponseCreateParamsStreaming(
             model=options.get(CONF_CHAT_MODEL, RECOMMENDED_CHAT_MODEL),
@@ -657,10 +753,28 @@ class NexusBaseLLMEntity(Entity):
 
         client = self.entry.runtime_data
 
+        # Build request metadata for tracking/analytics (model does not see this).
+        # Reserved budget: 4 KV pairs (area_id, area_name, floor_name, conversation_id).
+        # OpenAI API enforces a 16-pair limit.
+        if area_id or area_name:
+            kwargs: ResponseCreateParamsStreaming = {
+                k: v
+                for k, v in (
+                    ("area_id", area_id),
+                    ("area_name", area_name),
+                    ("floor_name", floor_name),
+                    ("conversation_id", chat_log.conversation_id or ""),
+                )
+                if v
+            }
+            kwargs.update(model_args)
+        else:
+            kwargs = dict(model_args)
+
         # To prevent infinite loops, we limit the number of iterations
         for _iteration in range(max_iterations):
             try:
-                stream = await client.responses.create(**model_args)
+                stream = await client.responses.create(**kwargs)
 
                 content_stream = chat_log.async_add_delta_content_stream(
                     self.entity_id,

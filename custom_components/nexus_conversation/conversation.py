@@ -10,7 +10,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import NexusConfigEntry
 from .const import DOMAIN
-from .entity import NexusBaseLLMEntity
+from .entity import NexusBaseLLMEntity, _derive_area_context
 
 # Max number of back and forth with the LLM to generate a response
 
@@ -81,6 +81,18 @@ class NexusConversationEntity(
         except conversation.ConverseError as err:
             return err.as_conversation_result()
 
-        await self._async_handle_chat_log(chat_log)
+        # Derive area context from the device/satellite that initiated this intent
+        area_id, area_name, floor_name = _derive_area_context(
+            self.hass,
+            user_input.device_id,
+            user_input.satellite_id,
+        )
+
+        await self._async_handle_chat_log(
+            chat_log,
+            area_id=area_id,
+            area_name=area_name,
+            floor_name=floor_name,
+        )
 
         return conversation.async_get_result_from_chat_log(user_input, chat_log)

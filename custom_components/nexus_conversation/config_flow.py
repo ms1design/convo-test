@@ -28,7 +28,6 @@ from homeassistant.const import (
     CONF_PROMPT,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import llm
 from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.selector import (
@@ -102,7 +101,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(
             CONF_BASE_URL, default="https://api.openai.com/v1"
-        ): cv.url,
+        ): str,
         vol.Required(CONF_API_KEY): str,
     }
 )
@@ -113,6 +112,12 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
 
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
+    import urllib.parse
+
+    parsed = urllib.parse.urlparse(data.get(CONF_BASE_URL, ""))
+    if not parsed.scheme or not parsed.netloc:
+        raise vol.Invalid("Invalid URL for base_url")
+
     client = openai.AsyncOpenAI(
         api_key=data[CONF_API_KEY],
         base_url=data.get(CONF_BASE_URL) or None,

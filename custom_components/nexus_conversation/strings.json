@@ -12,7 +12,7 @@
     "step": {
       "reauth_confirm": {
         "data": {
-          "api_key": "[%key:common::config_flow::data::api_key%]"
+          "api_key": "API Key"
         },
         "data_description": {
           "api_key": "Your Nexus API key."
@@ -26,7 +26,7 @@
         },
         "data_description": {
           "api_key": "Your Nexus API key.",
-          "base_url": "The base URL of the Nexus API endpoint."
+          "base_url": "The base URL of the Nexus API endpoint, default: http://<NEXUS_IP>:5015/home-assistant/v1"
         },
         "description": "Set up Nexus integration by providing your API key. Instructions to obtain an API key can be found [here]({instructions_url})."
       }

@@ -114,13 +114,17 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
     """
     import urllib.parse
 
-    parsed = urllib.parse.urlparse(data.get(CONF_BASE_URL, ""))
+    base_url = data.get(CONF_BASE_URL, "")
+
+    _LOGGER.debug("Connecting to: %s", base_url)
+
+    parsed = urllib.parse.urlparse(base_url)
     if not parsed.scheme or not parsed.netloc:
         raise vol.Invalid("Invalid URL for base_url")
 
     client = openai.AsyncOpenAI(
         api_key=data[CONF_API_KEY],
-        base_url=data.get(CONF_BASE_URL) or None,
+        base_url=base_url,
         http_client=get_async_client(hass),
     )
     await client.models.list(timeout=10.0)

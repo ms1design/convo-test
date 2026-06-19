@@ -102,9 +102,9 @@ _LOGGER = logging.getLogger(__name__)
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(
-            CONF_BASE_URL, default="https://api.openai.com/v1"
+            CONF_BASE_URL, default="http://<NEXUS_IP>:5015/home-assistant/v1"
         ): str,
-        vol.Required(CONF_API_KEY): str,
+        vol.Required(CONF_API_KEY, default="sk-1"): str,
     }
 )
 
@@ -123,6 +123,11 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
     parsed = urllib.parse.urlparse(base_url)
     if not parsed.scheme or not parsed.netloc:
         raise vol.Invalid("Invalid URL for base_url")
+
+    # Validate base_url ends with /home-assistant/v1 (case-insensitive, strip trailing slash)
+    path = parsed.path.rstrip("/")
+    if not path.lower().endswith("/home-assistant/v1"):
+        raise vol.Invalid("base_url must end with /home-assistant/v1")
 
     client = openai.AsyncOpenAI(
         api_key=data[CONF_API_KEY],

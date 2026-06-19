@@ -114,7 +114,7 @@ MAX_TOOL_ITERATIONS = 10
 
 
 def _adjust_schema(schema: dict[str, Any]) -> None:
-    """Adjust the output schema to be compatible with OpenAI API."""
+    """Adjust the output schema to be compatible with the upstream LLM API."""
     if schema["type"] == "object":
         schema.setdefault("strict", True)
         schema.setdefault("additionalProperties", False)
@@ -141,7 +141,7 @@ def _adjust_schema(schema: dict[str, Any]) -> None:
 def _format_structured_output(
     schema: vol.Schema, llm_api: llm.APIInstance | None
 ) -> dict[str, Any]:
-    """Format the schema to be compatible with OpenAI API."""
+    """Format the schema to be compatible with the upstream LLM API."""
     result: dict[str, Any] = convert(
         schema,
         custom_serializer=(
@@ -273,7 +273,7 @@ async def _transform_stream(  # noqa: C901 - This is complex, but better to have
 ) -> AsyncGenerator[
     conversation.AssistantContentDeltaDict | conversation.ToolResultContentDeltaDict
 ]:
-    """Transform an OpenAI delta stream into HA format."""
+    """Transform an upstream delta stream into HA format."""
     last_summary_index = None
     last_role: Literal["assistant", "tool_result"] | None = None
 
@@ -289,7 +289,7 @@ async def _transform_stream(  # noqa: C901 - This is complex, but better to have
 
         if isinstance(event, ResponseOutputItemAddedEvent):
             if isinstance(event.item, ResponseFunctionToolCall):
-                # OpenAI has tool calls as individual events
+                # Upstream API sends tool calls as individual events
                 # while HA puts tool calls inside the assistant message.
                 # We turn them into individual assistant content for HA
                 # to ensure that tools are called as soon as possible.
@@ -394,7 +394,7 @@ async def _transform_stream(  # noqa: C901 - This is complex, but better to have
             if data:
                 yield {"content": data}
         elif isinstance(event, ResponseReasoningSummaryTextDeltaEvent):
-            # OpenAI can output several reasoning summaries
+            # Upstream can output several reasoning summaries
             # in a single ResponseReasoningItem. We split them as separate
             # AssistantContent messages. Only last of them will have
             # the reasoning `native` field set.
@@ -619,7 +619,7 @@ class NexusBaseLLMEntity(Entity):
             if image_model not in ("gpt-image-1-mini", "gpt-image-2"):
                 image_tool["input_fidelity"] = "high"
             tools.append(image_tool)
-            # Keep image state on OpenAI so follow-up prompts can continue by
+            # Keep image state on upstream so follow-up prompts can continue by
             # conversation ID without resending the generated image data.
             model_args["store"] = True
             model_args["tool_choice"] = ToolChoiceTypesParam(type="image_generation")
@@ -698,16 +698,16 @@ class NexusBaseLLMEntity(Entity):
                         "organization_verification_required",
                         is_fixable=False,
                         is_persistent=False,
-                        learn_more_url="https://help.openai.com/en/articles/10910291-api-organization-verification",
+                        learn_more_url="https://futureproofhomes.net/",
                         severity=ir.IssueSeverity.WARNING,
                         translation_key="organization_verification_required",
                         translation_placeholders={
-                            "platform_settings": "https://platform.openai.com/settings/organization/general"
+                            "platform_settings": "https://futureproofhomes.net/"
                         },
                     )
 
                 LOGGER.error("Provider communication error: %s", err)
-                raise HomeAssistantError("Error talking to OpenAI") from err
+                raise HomeAssistantError("Error communicating with Nexus: %s", err) from err
 
             if not chat_log.unresponded_tool_results:
                 break

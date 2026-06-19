@@ -1,7 +1,7 @@
 {
   "services": {
     "generate_content": {
-      "service": "mdi:receipt-text"
+      "service": "mdi:message-text"
     },
     "generate_image": {
       "service": "mdi:image-sync"

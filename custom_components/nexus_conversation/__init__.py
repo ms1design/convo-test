@@ -71,6 +71,14 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 type NexusConfigEntry = ConfigEntry[openai.AsyncClient]
 
 
+def _get_image_model(entry: NexusConfigEntry) -> str:
+    """Get the configured image model from the conversation subentry."""
+    for subentry in entry.subentries.values():
+        if subentry.subentry_type == "conversation":
+            return subentry.data.get(CONF_IMAGE_MODEL, RECOMMENDED_IMAGE_MODEL)
+    return RECOMMENDED_IMAGE_MODEL
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up Nexus Conversation."""
     await async_migrate_integration(hass)
@@ -107,7 +115,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
         try:
             response: ImagesResponse = await client.images.generate(
-                model="dall-e-3",
+                model=_get_image_model(entry),
                 prompt=call.data[CONF_PROMPT],
                 size=call.data["size"],
                 quality=call.data["quality"],
@@ -291,7 +299,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> boo
     _ = await hass.async_add_executor_job(client.platform_headers)
 
     try:
-        await hass.async_add_executor_job(client.with_options(timeout=10.0).models.list)
+        await client.with_options(timeout=10.0).models.list()
     except openai.AuthenticationError as err:
         raise ConfigEntryAuthFailed(err) from err
     except openai.OpenAIError as err:

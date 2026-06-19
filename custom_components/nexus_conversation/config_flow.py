@@ -4,7 +4,6 @@ from collections.abc import Mapping
 import json
 import logging
 from typing import Any
-import urllib.parse
 
 import openai
 import voluptuous as vol
@@ -98,19 +97,11 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def _validate_base_url(value: str) -> str:
-    """Validate that the base_url is a valid URL."""
-    parsed = urllib.parse.urlparse(value)
-    if not parsed.scheme or not parsed.netloc:
-        raise vol.Invalid("Must be a valid URL")
-    return value
-
-
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(
             CONF_BASE_URL, default="https://api.openai.com/v1"
-        ): _validate_base_url,
+        ): cv.url,
         vol.Required(CONF_API_KEY): str,
     }
 )
@@ -123,7 +114,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
     """
     client = openai.AsyncOpenAI(
         api_key=data[CONF_API_KEY],
-        base_url=data.get(CONF_BASE_URL),
+        base_url=data.get(CONF_BASE_URL) or None,
         http_client=get_async_client(hass),
     )
     await client.models.list(timeout=10.0)
@@ -626,6 +617,7 @@ class NexusSubentryFlowHandler(ConfigSubentryFlow):
                 api_key=self._get_entry().data[CONF_API_KEY],
                 base_url=self._get_entry().data.get(CONF_BASE_URL),
                 http_client=get_async_client(self.hass),
+                timeout=10.0,
             )
             location_schema = vol.Schema(
                 {

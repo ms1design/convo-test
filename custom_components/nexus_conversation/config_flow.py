@@ -135,11 +135,11 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
         http_client=get_async_client(hass),
     )
 
-    # Lightweight health check against /health endpoint
+    # Lightweight health check against /v1/health endpoint
     http_client = client._client
     try:
         resp = await http_client.get(
-            f"{parsed.scheme}://{parsed.netloc}/health",
+            f"{parsed.scheme}://{parsed.netloc}/v1/health",
             headers={"Authorization": f"Bearer {data[CONF_API_KEY]}"},
             timeout=10.0,
         )
@@ -175,6 +175,15 @@ class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
             except openai.AuthenticationError:
                 errors["base"] = "invalid_auth"
+            except vol.Invalid as val_err:
+                msg = str(val_err)
+                if "Invalid API key" in msg:
+                    errors["base"] = "invalid_auth"
+                elif ("Cannot connect" in msg or "timed out" in msg or "Health check" in msg):
+                    errors["base"] = "cannot_connect"
+                else:
+                    _LOGGER.exception("Validation failed: %s", msg)
+                    errors["base"] = "unknown"
             except Exception:
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"

@@ -59,12 +59,8 @@ from openai.types.responses.web_search_tool_param import UserLocation
 import voluptuous as vol
 from voluptuous_openapi import convert
 
-from homeassistant.components import (
-    area_registry,
-    conversation,
-    entity_registry as er,
-    floor_registry as fr,
-)
+from homeassistant.components import conversation
+from homeassistant.helpers import area_registry, entity_registry as er, floor_registry as fr
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError

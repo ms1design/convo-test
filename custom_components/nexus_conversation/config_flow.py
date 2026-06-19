@@ -4,7 +4,9 @@ from collections.abc import Mapping
 import json
 import logging
 from typing import Any
+import urllib.parse
 
+import httpx
 import openai
 import voluptuous as vol
 from voluptuous_openapi import convert
@@ -116,7 +118,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
 
     base_url = data.get(CONF_BASE_URL, "")
 
-    _LOGGER.debug("Connecting to: %s", base_url)
+    _LOGGER.info("Connecting to: %s", base_url)
 
     parsed = urllib.parse.urlparse(base_url)
     if not parsed.scheme or not parsed.netloc:
@@ -127,7 +129,24 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
         base_url=base_url,
         http_client=get_async_client(hass),
     )
-    await client.models.list(timeout=10.0)
+
+    # Lightweight health check against /health endpoint
+    http_client = client._client
+    try:
+        resp = await http_client.get(
+            f"{parsed.scheme}://{parsed.netloc}/health",
+            headers={"Authorization": f"Bearer {data[CONF_API_KEY]}"},
+            timeout=10.0,
+        )
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as err:
+        if err.response.status_code == 401:
+            raise vol.Invalid("Invalid API key") from err
+        raise vol.Invalid(f"Health check failed ({err.response.status_code})") from err
+    except httpx.ConnectError as err:
+        raise vol.Invalid("Cannot connect to Nexus instance") from err
+    except httpx.TimeoutException as err:
+        raise vol.Invalid("Health check timed out") from err
 
 
 class NexusConfigFlow(ConfigFlow, domain=DOMAIN):

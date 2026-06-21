@@ -320,6 +320,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> boo
     except httpx.TimeoutException as err:
         raise ConfigEntryNotReady(err) from err
 
+    LOGGER.info("Connected to Nexus at %s", base_url)
+
     entry.runtime_data = client
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

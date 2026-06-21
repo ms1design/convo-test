@@ -2,7 +2,9 @@
 
 from pathlib import Path
 from types import MappingProxyType
+import urllib.parse
 
+import httpx
 import openai
 from openai.types.images_response import ImagesResponse
 from openai.types.responses import (
@@ -299,11 +301,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> boo
     # (caching done by library)
     _ = await hass.async_add_executor_job(client.platform_headers)
 
+    # Lightweight health check against /v1/health endpoint
+    parsed = urllib.parse.urlparse(base_url)
+    http_client = client._client
     try:
-        await client.with_options(timeout=10.0).models.list()
-    except openai.AuthenticationError as err:
-        raise ConfigEntryAuthFailed(err) from err
-    except openai.OpenAIError as err:
+        resp = await http_client.get(
+            f"{parsed.scheme}://{parsed.netloc}/v1/health",
+            headers={"Authorization": f"Bearer {entry.data[CONF_API_KEY]}"},
+            timeout=10.0,
+        )
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as err:
+        if err.response.status_code == 401:
+            raise ConfigEntryAuthFailed(err) from err
+        raise ConfigEntryNotReady(err) from err
+    except httpx.ConnectError as err:
+        raise ConfigEntryNotReady(err) from err
+    except httpx.TimeoutException as err:
         raise ConfigEntryNotReady(err) from err
 
     entry.runtime_data = client

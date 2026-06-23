@@ -10,7 +10,8 @@
   ],
   "config_flow": true,
   "dependencies": [
-    "conversation"
+    "conversation",
+    "zeroconf"
   ],
   "documentation": "https://github.com/ms1design/convo-test",
   "integration_type": "service",
@@ -19,5 +20,6 @@
   "requirements": [
     "openai==2.21.0"
   ],
-  "version": "0.0.53"
+  "version": "0.0.53",
+  "zeroconf": ["_com.futureproofhomes.nexus._tcp.local."]
 }

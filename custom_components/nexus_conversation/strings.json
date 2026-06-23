@@ -2,7 +2,9 @@
   "config": {
     "abort": {
       "already_configured": "[%key:common::config_flow::abort::already_configured_service%]",
-      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]"
+      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]",
+      "cannot_connect": "Failed to connect to the discovered Nexus server.",
+      "invalid_discovery_info": "Received invalid discovery information."
     },
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
@@ -29,6 +31,10 @@
           "base_url": "The base URL of the Nexus API endpoint, default: http://<NEXUS_IP>:5015/home-assistant/v1"
         },
         "description": "Set up Nexus integration by providing your API key. Instructions to obtain an API key can be found [here]({instructions_url})."
+      },
+      "discovery_confirm": {
+        "title": "Discovered Nexus Server",
+        "description": "{name} was discovered on the network at {host}.\n\nClick Submit to configure it, or Cancel to enter the address manually."
       }
     }
   },

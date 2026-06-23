@@ -8,7 +8,9 @@ import json
 from mimetypes import guess_file_type
 from pathlib import Path
 import re
-from typing import TYPE_CHECKING, Any, Literal, override, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
+
+from typing_extensions import override
 
 import openai
 from openai._streaming import AsyncStream

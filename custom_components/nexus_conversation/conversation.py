@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Literal, override
+from typing import Literal
+
+from typing_extensions import override
 
 from homeassistant.components import conversation
 from homeassistant.config_entries import ConfigSubentry

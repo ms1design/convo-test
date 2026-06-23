@@ -6,6 +6,9 @@ from collections.abc import Mapping
 import json
 import logging
 from typing import Any
+
+from typing_extensions import override
+
 import urllib.parse
 
 import httpx
@@ -13,7 +16,9 @@ import openai
 import voluptuous as vol
 from voluptuous_openapi import convert
 
+from homeassistant.components import onboarding
 from homeassistant.components.zone import ENTITY_ID_HOME
+from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from homeassistant.config_entries import (
     SOURCE_REAUTH,
     ConfigEntry,
@@ -159,6 +164,75 @@ class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 2
     MINOR_VERSION = 7
+
+    def __init__(self) -> None:
+        """Initialize the config flow."""
+        self._discovered_host: str = ""
+        self._discovered_port: int = 0
+
+    @override
+    async def async_step_zeroconf(
+        self, discovery_info: ZeroconfServiceInfo
+    ) -> ConfigFlowResult:
+        """Handle zeroconf discovery."""
+        host = discovery_info.host
+        port = discovery_info.port or 5015
+
+        self._discovered_host = host
+        self._discovered_port = port
+
+        # Derive unique_id from device_id property or fall back to host:port
+        unique_id = discovery_info.properties.get("device_id") or f"{host}:{port}"
+
+        await self.async_set_unique_id(unique_id, raise_on_progress=False)
+        self._abort_if_unique_id_configured(
+            updates={
+                CONF_BASE_URL: f"http://{host}:{port}/home-assistant/v1",
+                CONF_API_KEY: discovery_info.properties.get("api_key", "sk-1"),
+            }
+        )
+
+        # Validate the discovered server is reachable
+        try:
+            await validate_input(
+                self.hass,
+                {
+                    CONF_BASE_URL: f"http://{host}:{port}/home-assistant/v1",
+                    CONF_API_KEY: discovery_info.properties.get("api_key", "sk-1"),
+                },
+            )
+        except vol.Invalid:
+            # Validation failed — still offer confirmation; user can adjust
+            pass
+        except Exception:
+            _LOGGER.exception("Unexpected error during zeroconf discovery")
+
+        self.context.update({
+            "title_placeholders": {
+                "name": discovery_info.properties.get("model", "Nexus"),
+                "host": host,
+            },
+        })
+
+        # Confirm only if user has already onboarded HA
+        if onboarding.async_is_onboarded(self.hass):
+            self._set_confirm_only()
+            return self.async_show_form(
+                step_id="discovery_confirm",
+                description_placeholders={
+                    "name": discovery_info.properties.get("model", "Nexus"),
+                    "host": host,
+                },
+            )
+
+        # Fresh install — create directly
+        return self.async_create_entry(
+            title="Nexus",
+            data={
+                CONF_BASE_URL: f"http://{host}:{port}/home-assistant/v1",
+                CONF_API_KEY: discovery_info.properties.get("api_key", "sk-1"),
+            },
+        )
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None

@@ -1,5 +1,7 @@
 """Config flow for Nexus Conversation integration."""
 
+from __future__ import annotations
+
 from collections.abc import Mapping
 import json
 import logging
@@ -114,8 +116,6 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
 
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
-    import urllib.parse
-
     base_url = data.get(CONF_BASE_URL, "")
 
     _LOGGER.info("Connecting to: %s", base_url)

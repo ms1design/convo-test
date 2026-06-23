@@ -1,10 +1,10 @@
 {
   "services": {
     "generate_content": {
-      "service": "mdi:message-text"
+      "service": "mdi:message-text-outline"
     },
     "generate_image": {
-      "service": "mdi:image-sync"
+      "service": "mdi:image-edit"
     }
   }
 }

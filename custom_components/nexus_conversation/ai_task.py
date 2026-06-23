@@ -1,5 +1,7 @@
 """AI Task integration for Nexus."""
 
+from __future__ import annotations
+
 import base64
 from json import JSONDecodeError
 import logging
@@ -69,9 +71,9 @@ class NexusTaskEntity(
         chat_log: conversation.ChatLog,
     ) -> ai_task.GenDataTaskResult:
         """Handle a generate data task."""
-        # Note: AI Tasks are programmatic (no device_id/satellite_id),
-        # so area context is not available. _async_handle_chat_log defaults
-        # to area_id=None which skips developer message + metadata injection.
+        # AI Tasks are programmatic invocations — no device_id/satellite_id
+        # from the input, so area context is unavailable. _async_handle_chat_log
+        # defaults to area_id=None which skips developer message injection.
         await self._async_handle_chat_log(
             chat_log, task.name, task.structure, max_iterations=1000
         )

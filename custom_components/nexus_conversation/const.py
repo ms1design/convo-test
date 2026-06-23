@@ -1,5 +1,7 @@
 """Constants for the Nexus Conversation integration."""
 
+from __future__ import annotations
+
 import logging
 
 from homeassistant.const import CONF_LLM_HASS_API, CONF_PROMPT

@@ -1,6 +1,8 @@
 """Conversation support for Nexus."""
 
-from typing import Literal
+from __future__ import annotations
+
+from typing import Literal, override
 
 from homeassistant.components import conversation
 from homeassistant.config_entries import ConfigSubentry
@@ -40,6 +42,7 @@ class NexusConversationEntity(
 
     _attr_supports_streaming = True
 
+    @override
     def __init__(self, entry: NexusConfigEntry, subentry: ConfigSubentry) -> None:
         """Initialize the agent."""
         super().__init__(entry, subentry)
@@ -88,11 +91,21 @@ class NexusConversationEntity(
             user_input.satellite_id,
         )
 
+        # Resolve caller identity — mirrors openai_conversation pattern
+        user_id: str | None = None
+        user_name: str | None = None
+        if user_input.context and user_input.context.user_id:
+            user_id = user_input.context.user_id
+            if (user := await self.hass.auth.async_get_user(user_id)):
+                user_name = user.name
+
         await self._async_handle_chat_log(
             chat_log,
             area_id=area_id,
             area_name=area_name,
             floor_name=floor_name,
+            user_id=user_id,
+            user_name=user_name,
         )
 
         return conversation.async_get_result_from_chat_log(user_input, chat_log)

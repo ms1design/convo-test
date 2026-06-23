@@ -1,12 +1,14 @@
 """Base entity for Nexus."""
 
+from __future__ import annotations
+
 import base64
 from collections.abc import AsyncGenerator, Callable, Iterable
 import json
 from mimetypes import guess_file_type
 from pathlib import Path
 import re
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, override, cast
 
 import openai
 from openai._streaming import AsyncStream
@@ -546,6 +548,7 @@ class NexusBaseLLMEntity(Entity):
     _attr_has_entity_name = True
     _attr_name: str | None = None
 
+    @override
     def __init__(self, entry: NexusConfigEntry, subentry: ConfigSubentry) -> None:
         """Initialize the entity."""
         self.entry = entry
@@ -573,23 +576,29 @@ class NexusBaseLLMEntity(Entity):
         area_id: str | None = None,
         area_name: str | None = None,
         floor_name: str | None = None,
+        user_id: str | None = None,
+        user_name: str | None = None,
     ) -> None:
         """Generate an answer for the chat log."""
         options = self.subentry.data
 
         messages = _convert_content_to_param(chat_log.content)
 
-        # Inject area context as a developer message (precedence over user)
-        if area_name:
-            safe_area_name = _sanitize_area_name(area_name)
-            area_parts = [f"You are assisting a user in area '{safe_area_name}'."]
-            if floor_name:
-                safe_floor_name = _sanitize_area_name(floor_name)
-                area_parts.append(f"The area is located on floor '{safe_floor_name}'.")
+        # Inject area/user context as a developer message (precedence over user)
+        if area_name or user_name:
+            ctx_parts: list[str] = []
+            if user_name:
+                ctx_parts.append(f"User speaking: {user_name}.")
+            if area_name:
+                safe_area_name = _sanitize_area_name(area_name)
+                ctx_parts.append(f"You are assisting a user in area '{safe_area_name}'.")
+                if floor_name:
+                    safe_floor_name = _sanitize_area_name(floor_name)
+                    ctx_parts.append(f"The area is located on floor '{safe_floor_name}'.")
             area_msg: EasyInputMessageParam = {
                 "type": "message",
                 "role": "developer",
-                "content": " ".join(area_parts),
+                "content": " ".join(ctx_parts),
             }
             # Insert after any existing developer/system messages,
             # or append at end if none exist (-1 + 1 = 0).
@@ -750,15 +759,16 @@ class NexusBaseLLMEntity(Entity):
         client = self.entry.runtime_data
 
         # Build request metadata for tracking/analytics (model does not see this).
-        # Reserved budget: 4 KV pairs (area_id, area_name, floor_name, conversation_id).
-        # OpenAI API enforces a 16-pair limit.
-        if area_id or area_name:
+        # Budget: 16 KV pairs. Currently using 5 (area_id, area_name, floor_name,
+        # user_id, conversation_id). Remaining: 11.
+        if area_id or area_name or user_id:
             kwargs: ResponseCreateParamsStreaming = {
                 k: v
                 for k, v in (
                     ("area_id", area_id),
                     ("area_name", area_name),
                     ("floor_name", floor_name),
+                    ("user_id", user_id),
                     ("conversation_id", chat_log.conversation_id or ""),
                 )
                 if v

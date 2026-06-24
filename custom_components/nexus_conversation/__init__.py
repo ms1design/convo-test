@@ -79,13 +79,17 @@ async def _check_health(
 ) -> None:
     """Lightweight health check against /v1/health endpoint."""
     parsed = urllib.parse.urlparse(base_url)
-    if parsed.scheme != "https":
-        raise ValueError("base_url must use https:// scheme")
+    is_local = parsed.hostname in ("localhost", "127.0.0.1", "::1")
+    headers = {}
+    if parsed.scheme == "https" or (parsed.scheme == "http" and is_local):
+        headers["Authorization"] = f"Bearer {api_key}"
+    else:
+        raise ValueError("base_url must use https:// or http:// for localhost")
 
     try:
         resp = await http_client.get(
             f"{parsed.scheme}://{parsed.netloc}/v1/health",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers=headers,
             timeout=10.0,
         )
         resp.raise_for_status()

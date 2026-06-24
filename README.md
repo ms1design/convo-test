@@ -73,25 +73,17 @@ After installing, add the Nexus integration through the HA UI:
 |--------|-------------|---------|
 | `base_url` | OpenAI-compatible API endpoint | `https://api.openai.com/v1` |
 | `api_key` | Your API key | _(required)_ |
-| `chat_model` | Model for conversations | `gpt-4o-mini` |
+| `chat_model` | Model for conversations | _(default)_ |
 | `prompt` | System prompt / instructions | _(empty)_ |
 | `temperature` | Sampling temperature | `1.0` |
 | `max_tokens` | Maximum output tokens | `3000` |
-| `reasoning_effort` | Effort for reasoning models (o-series, gpt-5) | `low` |
+| `reasoning_effort` | Effort for reasoning models | `low` |
 | `code_interpreter` | Enable code execution tool | `false` |
 | `web_search` | Enable web search tool | `false` |
 
 ## Supported Models
 
-All OpenAI chat, reasoning, and vision models:
-
-| Type | Models |
-|------|--------|
-| Chat | `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo` |
-| Reasoning | `o1`, `o3-mini`, `gpt-5` series |
-| Vision | `gpt-4o`, `gpt-4o-mini` (with image inputs) |
-
-See the [OpenAI models documentation](https://platform.openai.com/docs/models) for the complete list.
+Compatible with all OpenAI chat, reasoning, and vision models. See the [OpenAI models documentation](https://platform.openai.com/docs/models) for the complete list.
 
 ## Debug Logging
 

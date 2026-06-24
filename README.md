@@ -100,7 +100,7 @@ After installing, add the Nexus integration through the HA UI:
 
 For a complete end-to-end setup:
 
-1. **Start Nexus OS** — Flash the [Nexus AI Base Station](https://github.com/FutureProofHomes/Internal-Nexus/releases) ISO to an NVMe drive and run `nexus up`. Nexus broadcasts itself on the network via mDNS and will be auto-discovered by Home Assistant.
+1. **Start Nexus OS** — Flash the **Nexus AI Base Station** ISO to an NVMe drive and run `nexus up`. Nexus broadcasts itself on the network via mDNS and will be auto-discovered by Home Assistant.
 2. **Install this HACS Integration** — as described above
 3. **Configure the Conversation Agent** — discover Nexus via zeroconf or enter the endpoint manually
 4. **Activate the MCP Server** — add the Home Assistant MCP Server integration to expose LLM Tools for Nexus

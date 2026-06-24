@@ -20,6 +20,6 @@
   "requirements": [
     "openai==2.21.0"
   ],
-  "version": "0.0.60",
+  "version": "0.0.61",
   "zeroconf": ["_nexus._tcp.local."]
 }

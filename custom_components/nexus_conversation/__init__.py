@@ -75,21 +75,13 @@ type NexusConfigEntry = ConfigEntry[openai.AsyncClient]
 
 
 async def _check_health(
-    http_client: httpx.AsyncClient, base_url: str, api_key: str
+    http_client: httpx.AsyncClient, base_url: str
 ) -> None:
     """Lightweight health check against /v1/health endpoint."""
     parsed = urllib.parse.urlparse(base_url)
-    is_local = parsed.hostname in ("localhost", "127.0.0.1", "::1")
-    headers = {}
-    if parsed.scheme == "https" or (parsed.scheme == "http" and is_local):
-        headers["Authorization"] = f"Bearer {api_key}"
-    else:
-        raise ValueError("base_url must use https:// or http:// for localhost")
-
     try:
         resp = await http_client.get(
             f"{parsed.scheme}://{parsed.netloc}/v1/health",
-            headers=headers,
             timeout=10.0,
         )
         resp.raise_for_status()
@@ -256,7 +248,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> boo
     # Health check
     http_client = client._client
     try:
-        await _check_health(http_client, base_url, entry.data[CONF_API_KEY])
+        await _check_health(http_client, base_url)
     except _HealthCheckError as err:
         if err.status_code == 401:
             raise ConfigEntryAuthFailed(err) from err

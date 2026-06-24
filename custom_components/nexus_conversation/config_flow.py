@@ -133,7 +133,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
 
     http_client = client._client
     try:
-        await _check_health(http_client, base_url, data[CONF_API_KEY])
+        await _check_health(http_client, base_url)
     except _HealthCheckError as err:
         if err.status_code == 401:
             raise vol.Invalid("Invalid API key") from err

@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
-
-from typing_extensions import override
+from typing import Literal, override
 
 from homeassistant.components import conversation
 from homeassistant.config_entries import ConfigSubentry
@@ -98,7 +96,7 @@ class NexusConversationEntity(
         user_name: str | None = None
         if user_input.context and user_input.context.user_id:
             user_id = user_input.context.user_id
-            if (user := await self.hass.auth.async_get_user(user_id)):
+            if user := await self.hass.auth.async_get_user(user_id):
                 user_name = user.name
 
         await self._async_handle_chat_log(

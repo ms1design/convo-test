@@ -2,22 +2,13 @@
 
 from __future__ import annotations
 
+import urllib.parse
 from pathlib import Path
 from types import MappingProxyType
-import urllib.parse
 
 import httpx
 import openai
-from openai.types.images_response import ImagesResponse
-from openai.types.responses import (
-    EasyInputMessageParam,
-    Response,
-    ResponseInputMessageContentListParam,
-    ResponseInputParam,
-    ResponseInputTextParam,
-)
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import CONF_API_KEY, CONF_PROMPT, Platform
 from homeassistant.core import (
@@ -34,13 +25,31 @@ from homeassistant.exceptions import (
 )
 from homeassistant.helpers import (
     config_validation as cv,
+)
+from homeassistant.helpers import (
     device_registry as dr,
+)
+from homeassistant.helpers import (
     entity_registry as er,
+)
+from homeassistant.helpers import (
     issue_registry as ir,
+)
+from homeassistant.helpers import (
     selector,
 )
 from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.typing import ConfigType
+
+# IMAGE SYNTHESIS TEMPORARILY DISABLED
+# from openai.types.images_response import ImagesResponse
+from openai.types.responses import (
+    EasyInputMessageParam,
+    Response,
+    ResponseInputMessageContentListParam,
+    ResponseInputParam,
+    ResponseInputTextParam,
+)
 
 from .const import (
     CONF_BASE_URL,
@@ -66,7 +75,7 @@ from .const import (
 )
 from .entity import async_prepare_files_for_prompt
 
-SERVICE_GENERATE_IMAGE = "generate_image"
+SERVICE_GENERATE_IMAGE = "generate_image"  # TEMPORARILY DISABLED
 SERVICE_GENERATE_CONTENT = "generate_content"
 
 PLATFORMS = (Platform.CONVERSATION, Platform.AI_TASK)
@@ -75,12 +84,13 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 type NexusConfigEntry = ConfigEntry[openai.AsyncClient]
 
 
-def _get_image_model(entry: NexusConfigEntry) -> str:
-    """Get the configured image model from the conversation subentry."""
-    for subentry in entry.subentries.values():
-        if subentry.subentry_type == "conversation":
-            return subentry.data.get(CONF_IMAGE_MODEL, RECOMMENDED_IMAGE_MODEL)
-    return RECOMMENDED_IMAGE_MODEL
+# IMAGE SYNTHESIS TEMPORARILY DISABLED
+# def _get_image_model(entry: NexusConfigEntry) -> str:
+#     """Get the configured image model from the conversation subentry."""
+#     for subentry in entry.subentries.values():
+#         if subentry.subentry_type == "conversation":
+#             return subentry.data.get(CONF_IMAGE_MODEL, RECOMMENDED_IMAGE_MODEL)
+#     return RECOMMENDED_IMAGE_MODEL
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -88,56 +98,57 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     # No migration needed — zero active users
     # await async_migrate_integration(hass)
 
-    async def render_image(call: ServiceCall) -> ServiceResponse:
-        """Generate an image with the configured model."""
-        LOGGER.warning(
-            "Action '%s.%s' is deprecated and will be removed in the 2026.9.0 release. "
-            "Please use the 'ai_task.generate_image' action instead",
-            DOMAIN,
-            SERVICE_GENERATE_IMAGE,
-        )
-        ir.async_create_issue(
-            hass,
-            DOMAIN,
-            "deprecated_generate_image",
-            breaks_in_ha_version="2026.9.0",
-            is_fixable=False,
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="deprecated_generate_image",
-        )
-
-        entry_id = call.data["config_entry"]
-        entry = hass.config_entries.async_get_entry(entry_id)
-
-        if entry is None or entry.domain != DOMAIN:
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="invalid_config_entry",
-                translation_placeholders={"config_entry": entry_id},
-            )
-
-        client: openai.AsyncClient = entry.runtime_data
-
-        try:
-            response: ImagesResponse = await client.images.generate(
-                model=_get_image_model(entry),
-                prompt=call.data[CONF_PROMPT],
-                size=call.data["size"],
-                quality=call.data["quality"],
-                style=call.data["style"],
-                response_format="url",
-                n=1,
-            )
-        except openai.AuthenticationError as err:
-            entry.async_start_reauth(hass)
-            raise HomeAssistantError("Authentication error") from err
-        except openai.OpenAIError as err:
-            raise HomeAssistantError(f"Error generating image: {err}") from err
-
-        if not response.data or not response.data[0].url:
-            raise HomeAssistantError("No image returned")
-
-        return response.data[0].model_dump(exclude={"b64_json"})
+    # IMAGE SYNTHESIS TEMPORARILY DISABLED
+    # async def render_image(call: ServiceCall) -> ServiceResponse:
+    #     """Generate an image with the configured model."""
+    #     LOGGER.warning(
+    #         "Action '%s.%s' is deprecated and will be removed in the 2026.9.0 release. "
+    #         "Please use the 'ai_task.generate_image' action instead",
+    #         DOMAIN,
+    #         SERVICE_GENERATE_IMAGE,
+    #     )
+    #     ir.async_create_issue(
+    #         hass,
+    #         DOMAIN,
+    #         "deprecated_generate_image",
+    #         breaks_in_ha_version="2026.9.0",
+    #         is_fixable=False,
+    #         severity=ir.IssueSeverity.WARNING,
+    #         translation_key="deprecated_generate_image",
+    #     )
+    #
+    #     entry_id = call.data["config_entry"]
+    #     entry = hass.config_entries.async_get_entry(entry_id)
+    #
+    #     if entry is None or entry.domain != DOMAIN:
+    #         raise ServiceValidationError(
+    #             translation_domain=DOMAIN,
+    #             translation_key="invalid_config_entry",
+    #             translation_placeholders={"config_entry": entry_id},
+    #         )
+    #
+    #     client: openai.AsyncClient = entry.runtime_data
+    #
+    #     try:
+    #         response: ImagesResponse = await client.images.generate(
+    #             model=_get_image_model(entry),
+    #             prompt=call.data[CONF_PROMPT],
+    #             size=call.data["size"],
+    #             quality=call.data["quality"],
+    #             style=call.data["style"],
+    #             response_format="url",
+    #             n=1,
+    #         )
+    #     except openai.AuthenticationError as err:
+    #         entry.async_start_reauth(hass)
+    #         raise HomeAssistantError("Authentication error") from err
+    #     except openai.OpenAIError as err:
+    #         raise HomeAssistantError(f"Error generating image: {err}") from err
+    #
+    #     if not response.data or not response.data[0].url:
+    #         raise HomeAssistantError("No image returned")
+    #
+    #     return response.data[0].model_dump(exclude={"b64_json"})
 
     async def send_prompt(call: ServiceCall) -> ServiceResponse:
         """Send a prompt to Nexus and return the response."""
@@ -262,27 +273,28 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         supports_response=SupportsResponse.ONLY,
     )
 
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_GENERATE_IMAGE,
-        render_image,
-        schema=vol.Schema(
-            {
-                vol.Required("config_entry"): selector.ConfigEntrySelector(
-                    {
-                        "integration": DOMAIN,
-                    }
-                ),
-                vol.Required(CONF_PROMPT): cv.string,
-                vol.Optional("size", default="1024x1024"): vol.In(
-                    ("1024x1024", "1024x1792", "1792x1024")
-                ),
-                vol.Optional("quality", default="standard"): vol.In(("standard", "hd")),
-                vol.Optional("style", default="vivid"): vol.In(("vivid", "natural")),
-            }
-        ),
-        supports_response=SupportsResponse.ONLY,
-    )
+    # IMAGE SYNTHESIS TEMPORARILY DISABLED
+    # hass.services.async_register(
+    #     DOMAIN,
+    #     SERVICE_GENERATE_IMAGE,
+    #     render_image,
+    #     schema=vol.Schema(
+    #         {
+    #             vol.Required("config_entry"): selector.ConfigEntrySelector(
+    #                 {
+    #                     "integration": DOMAIN,
+    #                 }
+    #             ),
+    #             vol.Required(CONF_PROMPT): cv.string,
+    #             vol.Optional("size", default="1024x1024"): vol.In(
+    #                 ("1024x1024", "1024x1792", "1792x1024")
+    #             ),
+    #             vol.Optional("quality", default="standard"): vol.In(("standard", "hd")),
+    #             vol.Optional("style", default="vivid"): vol.In(("vivid", "natural")),
+    #         }
+    #     ),
+    #     supports_response=SupportsResponse.ONLY,
+    # )
 
     return True
 

@@ -2,23 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 import json
 import logging
-from typing import Any
-
-from typing_extensions import override
-
 import urllib.parse
+from collections.abc import Mapping
+from typing import Any, override
 
 import httpx
 import openai
 import voluptuous as vol
-from voluptuous_openapi import convert
-
 from homeassistant.components import onboarding
 from homeassistant.components.zone import ENTITY_ID_HOME
-from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from homeassistant.config_entries import (
     SOURCE_REAUTH,
     ConfigEntry,
@@ -47,17 +41,15 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     SelectSelectorMode,
     TemplateSelector,
-    TextSelector,
-    TextSelectorConfig,
-    TextSelectorType,
 )
+from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from homeassistant.helpers.typing import VolDictType
+from voluptuous_openapi import convert
 
 from .const import (
     CONF_BASE_URL,
     CONF_CHAT_MODEL,
     CONF_CODE_INTERPRETER,
-    CONF_IMAGE_MODEL,
     CONF_MAX_TOKENS,
     CONF_REASONING_EFFORT,
     CONF_REASONING_SUMMARY,
@@ -82,7 +74,6 @@ from .const import (
     RECOMMENDED_CHAT_MODEL,
     RECOMMENDED_CODE_INTERPRETER,
     RECOMMENDED_CONVERSATION_OPTIONS,
-    RECOMMENDED_IMAGE_MODEL,
     RECOMMENDED_MAX_TOKENS,
     RECOMMENDED_REASONING_EFFORT,
     RECOMMENDED_REASONING_SUMMARY,
@@ -97,7 +88,6 @@ from .const import (
     RECOMMENDED_WEB_SEARCH_USER_LOCATION,
     UNSUPPORTED_CODE_INTERPRETER_MODELS,
     UNSUPPORTED_FLEX_SERVICE_TIERS_MODELS,
-    UNSUPPORTED_IMAGE_MODELS,
     UNSUPPORTED_MODELS,
     UNSUPPORTED_PRIORITY_SERVICE_TIERS_MODELS,
     UNSUPPORTED_WEB_SEARCH_MODELS,
@@ -117,7 +107,8 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
-    """Validate the user input allows us to connect.
+    """
+    Validate the user input allows us to connect.
 
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
@@ -231,7 +222,10 @@ class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
         try:
             await validate_input(
                 self.hass,
-                {CONF_BASE_URL: f"http://{host}:{port}/home-assistant/v1", CONF_API_KEY: api_key},
+                {
+                    CONF_BASE_URL: f"http://{host}:{port}/home-assistant/v1",
+                    CONF_API_KEY: api_key,
+                },
             )
         except vol.Invalid:
             pass
@@ -247,7 +241,10 @@ class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
         if not onboarding.async_is_onboarded(self.hass):
             return self.async_create_entry(
                 title="Nexus",
-                data={CONF_BASE_URL: f"http://{host}:{port}/home-assistant/v1", CONF_API_KEY: api_key},
+                data={
+                    CONF_BASE_URL: f"http://{host}:{port}/home-assistant/v1",
+                    CONF_API_KEY: api_key,
+                },
                 subentries=[
                     {
                         "subentry_type": "conversation",
@@ -270,7 +267,6 @@ class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle the initial step."""
-
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -285,7 +281,11 @@ class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
                 msg = str(val_err)
                 if "Invalid API key" in msg:
                     errors["base"] = "invalid_auth"
-                elif ("Cannot connect" in msg or "timed out" in msg or "Health check" in msg):
+                elif (
+                    "Cannot connect" in msg
+                    or "timed out" in msg
+                    or "Health check" in msg
+                ):
                     errors["base"] = "cannot_connect"
                 else:
                     _LOGGER.exception("Validation failed: %s", msg)
@@ -664,22 +664,23 @@ class NexusSubentryFlowHandler(ConfigSubentryFlow):
                 )
             }
 
-        if self._subentry_type == "ai_task_data" and not model.startswith(
-            tuple(UNSUPPORTED_IMAGE_MODELS)
-        ):
-            step_schema[
-                vol.Optional(CONF_IMAGE_MODEL, default=RECOMMENDED_IMAGE_MODEL)
-            ] = SelectSelector(
-                SelectSelectorConfig(
-                    options=[
-                        "gpt-image-2",
-                        "gpt-image-1.5",
-                        "gpt-image-1",
-                        "gpt-image-1-mini",
-                    ],
-                    mode=SelectSelectorMode.DROPDOWN,
-                )
-            )
+        # IMAGE SYNTHESIS TEMPORARILY DISABLED
+        # if self._subentry_type == "ai_task_data" and not model.startswith(
+        #     tuple(UNSUPPORTED_IMAGE_MODELS)
+        # ):
+        #     step_schema[
+        #         vol.Optional(CONF_IMAGE_MODEL, default=RECOMMENDED_IMAGE_MODEL)
+        #     ] = SelectSelector(
+        #         SelectSelectorConfig(
+        #             options=[
+        #                 "gpt-image-2",
+        #                 "gpt-image-1.5",
+        #                 "gpt-image-1",
+        #                 "gpt-image-1-mini",
+        #             ],
+        #             mode=SelectSelectorMode.DROPDOWN,
+        #         )
+        #     )
 
         if user_input is not None:
             if user_input.get(CONF_WEB_SEARCH):
@@ -815,5 +816,3 @@ class NexusSubentryFlowHandler(ConfigSubentryFlow):
         _LOGGER.debug("Location data: %s", location_data)
 
         return location_data
-
-

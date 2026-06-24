@@ -3,16 +3,34 @@
 from __future__ import annotations
 
 import base64
-from collections.abc import AsyncGenerator, Callable, Iterable
 import json
+import re
+from collections.abc import AsyncGenerator
 from mimetypes import guess_file_type
 from pathlib import Path
-import re
-from typing import TYPE_CHECKING, Any, Literal, cast
-
-from typing_extensions import override
+from typing import TYPE_CHECKING, Any, Literal, cast, override
 
 import openai
+import voluptuous as vol
+from homeassistant.components import conversation
+from homeassistant.config_entries import ConfigSubentry
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import (
+    area_registry,
+    llm,
+)
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import (
+    entity_registry as er,
+)
+from homeassistant.helpers import (
+    floor_registry as fr,
+)
+from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.json import json_dumps
+from homeassistant.util import slugify
 from openai._streaming import AsyncStream
 from openai.types.responses import (
     EasyInputMessageParam,
@@ -41,7 +59,6 @@ from openai.types.responses import (
     ResponseReasoningSummaryTextDeltaEvent,
     ResponseStreamEvent,
     ResponseTextDeltaEvent,
-    ToolChoiceTypesParam,
     ToolParam,
     WebSearchToolParam,
 )
@@ -51,32 +68,21 @@ from openai.types.responses.response_create_params import (
 )
 from openai.types.responses.response_input_param import (
     FunctionCallOutput,
+)
+from openai.types.responses.response_input_param import (
     ImageGenerationCall as ImageGenerationCallParam,
 )
 from openai.types.responses.response_output_item import ImageGenerationCall
 from openai.types.responses.tool_param import (
     CodeInterpreter,
     CodeInterpreterContainerCodeInterpreterToolAuto,
-    ImageGeneration,
 )
 from openai.types.responses.web_search_tool_param import UserLocation
-import voluptuous as vol
 from voluptuous_openapi import convert
-
-from homeassistant.components import conversation
-from homeassistant.helpers import area_registry, entity_registry as er, floor_registry as fr
-from homeassistant.config_entries import ConfigSubentry
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import device_registry as dr, issue_registry as ir, llm
-from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.json import json_dumps
-from homeassistant.util import slugify
 
 from .const import (
     CONF_CHAT_MODEL,
     CONF_CODE_INTERPRETER,
-    CONF_IMAGE_MODEL,
     CONF_MAX_TOKENS,
     CONF_REASONING_EFFORT,
     CONF_REASONING_SUMMARY,
@@ -96,7 +102,6 @@ from .const import (
     DOMAIN,
     LOGGER,
     RECOMMENDED_CHAT_MODEL,
-    RECOMMENDED_IMAGE_MODEL,
     RECOMMENDED_MAX_TOKENS,
     RECOMMENDED_REASONING_EFFORT,
     RECOMMENDED_REASONING_SUMMARY,
@@ -332,7 +337,7 @@ def _convert_content_to_param(
                 reasoning_summary = []
             elif isinstance(content.native, ImageGenerationCall):
                 messages.append(
-                    cast(ImageGenerationCallParam, content.native.to_dict())
+                    cast("ImageGenerationCallParam", content.native.to_dict())
                 )
 
     return messages
@@ -572,7 +577,6 @@ class NexusBaseLLMEntity(Entity):
         chat_log: conversation.ChatLog,
         structure_name: str | None = None,
         structure: vol.Schema | None = None,
-        force_image: bool = False,
         max_iterations: int = MAX_TOOL_ITERATIONS,
         *,
         area_id: str | None = None,
@@ -593,10 +597,14 @@ class NexusBaseLLMEntity(Entity):
                 ctx_parts.append(f"User speaking: {user_name}.")
             if area_name:
                 safe_area_name = _sanitize_area_name(area_name)
-                ctx_parts.append(f"You are assisting a user in area '{safe_area_name}'.")
+                ctx_parts.append(
+                    f"You are assisting a user in area '{safe_area_name}'."
+                )
                 if floor_name:
                     safe_floor_name = _sanitize_area_name(floor_name)
-                    ctx_parts.append(f"The area is located on floor '{safe_floor_name}'.")
+                    ctx_parts.append(
+                        f"The area is located on floor '{safe_floor_name}'."
+                    )
             area_msg: EasyInputMessageParam = {
                 "type": "message",
                 "role": "developer",
@@ -682,7 +690,7 @@ class NexusBaseLLMEntity(Entity):
                 CONF_WEB_SEARCH_INLINE_CITATIONS,
                 RECOMMENDED_WEB_SEARCH_INLINE_CITATIONS,
             ):
-                system_message = cast(EasyInputMessageParam, messages[0])
+                system_message = cast("EasyInputMessageParam", messages[0])
                 content = system_message["content"]
                 if isinstance(content, str):
                     system_message["content"] = [
@@ -712,20 +720,21 @@ class NexusBaseLLMEntity(Entity):
             )
             model_args.setdefault("include", []).append("code_interpreter_call.outputs")  # type: ignore[union-attr]
 
-        if force_image:
-            image_model = options.get(CONF_IMAGE_MODEL, RECOMMENDED_IMAGE_MODEL)
-            image_tool = ImageGeneration(
-                type="image_generation",
-                model=image_model,
-                output_format="png",
-            )
-            if image_model not in ("gpt-image-1-mini", "gpt-image-2"):
-                image_tool["input_fidelity"] = "high"
-            tools.append(image_tool)
-            # Keep image state on upstream so follow-up prompts can continue by
-            # conversation ID without resending the generated image data.
-            model_args["store"] = True
-            model_args["tool_choice"] = ToolChoiceTypesParam(type="image_generation")
+        # IMAGE SYNTHESIS TEMPORARILY DISABLED
+        # if force_image:
+        #     image_model = options.get(CONF_IMAGE_MODEL, RECOMMENDED_IMAGE_MODEL)
+        #     image_tool = ImageGeneration(
+        #         type="image_generation",
+        #         model=image_model,
+        #         output_format="png",
+        #     )
+        #     if image_model not in ("gpt-image-1-mini", "gpt-image-2"):
+        #         image_tool["input_fidelity"] = "high"
+        #     tools.append(image_tool)
+        #     # Keep image state on upstream so follow-up prompts can continue by
+        #     # conversation ID without resending the generated image data.
+        #     model_args["store"] = True
+        #     model_args["tool_choice"] = ToolChoiceTypesParam(type="image_generation")
 
         if tools:
             model_args["tools"] = tools
@@ -829,7 +838,9 @@ class NexusBaseLLMEntity(Entity):
                     )
 
                 LOGGER.error("Provider communication error: %s", err)
-                raise HomeAssistantError("Error communicating with Nexus: %s", err) from err
+                raise HomeAssistantError(
+                    "Error communicating with Nexus: %s", err
+                ) from err
 
             if not chat_log.unresponded_tool_results:
                 break
@@ -838,7 +849,8 @@ class NexusBaseLLMEntity(Entity):
 async def async_prepare_files_for_prompt(
     hass: HomeAssistant, files: list[tuple[Path, str | None]]
 ) -> ResponseInputMessageContentListParam:
-    """Append files to a prompt.
+    """
+    Append files to a prompt.
 
     Caller needs to ensure that the files are allowed.
     """

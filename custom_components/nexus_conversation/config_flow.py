@@ -181,6 +181,20 @@ class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_BASE_URL: f"http://{self._discovered_host}:{self._discovered_port}/home-assistant/v1",
                     CONF_API_KEY: self.context.get("api_key", "sk-1"),
                 },
+                subentries=[
+                    {
+                        "subentry_type": "conversation",
+                        "data": RECOMMENDED_CONVERSATION_OPTIONS,
+                        "title": DEFAULT_CONVERSATION_NAME,
+                        "unique_id": None,
+                    },
+                    {
+                        "subentry_type": "ai_task_data",
+                        "data": RECOMMENDED_AI_TASK_OPTIONS,
+                        "title": DEFAULT_AI_TASK_NAME,
+                        "unique_id": None,
+                    },
+                ],
             )
 
         self._set_confirm_only()
@@ -234,6 +248,20 @@ class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_create_entry(
                 title="Nexus",
                 data={CONF_BASE_URL: f"http://{host}:{port}/home-assistant/v1", CONF_API_KEY: api_key},
+                subentries=[
+                    {
+                        "subentry_type": "conversation",
+                        "data": RECOMMENDED_CONVERSATION_OPTIONS,
+                        "title": DEFAULT_CONVERSATION_NAME,
+                        "unique_id": None,
+                    },
+                    {
+                        "subentry_type": "ai_task_data",
+                        "data": RECOMMENDED_AI_TASK_OPTIONS,
+                        "title": DEFAULT_AI_TASK_NAME,
+                        "unique_id": None,
+                    },
+                ],
             )
 
         return await self.async_step_discovery_confirm()

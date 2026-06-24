@@ -8,7 +8,6 @@ import urllib.parse
 from collections.abc import Mapping
 from typing import Any, override
 
-import httpx
 import openai
 import voluptuous as vol
 from homeassistant.components import onboarding
@@ -46,6 +45,7 @@ from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from homeassistant.helpers.typing import VolDictType
 from voluptuous_openapi import convert
 
+from . import _check_health, _HealthCheckError
 from .const import (
     CONF_BASE_URL,
     CONF_CHAT_MODEL,
@@ -131,23 +131,13 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
         http_client=get_async_client(hass),
     )
 
-    # Lightweight health check against /v1/health endpoint
     http_client = client._client
     try:
-        resp = await http_client.get(
-            f"{parsed.scheme}://{parsed.netloc}/v1/health",
-            headers={"Authorization": f"Bearer {data[CONF_API_KEY]}"},
-            timeout=10.0,
-        )
-        resp.raise_for_status()
-    except httpx.HTTPStatusError as err:
-        if err.response.status_code == 401:
+        await _check_health(http_client, base_url, data[CONF_API_KEY])
+    except _HealthCheckError as err:
+        if err.status_code == 401:
             raise vol.Invalid("Invalid API key") from err
-        raise vol.Invalid(f"Health check failed ({err.response.status_code})") from err
-    except httpx.ConnectError as err:
-        raise vol.Invalid("Cannot connect to Nexus instance") from err
-    except httpx.TimeoutException as err:
-        raise vol.Invalid("Health check timed out") from err
+        raise vol.Invalid(f"Health check failed ({err.status_code})") from err
 
 
 class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -663,24 +653,6 @@ class NexusSubentryFlowHandler(ConfigSubentryFlow):
                     CONF_WEB_SEARCH_INLINE_CITATIONS,
                 )
             }
-
-        # IMAGE SYNTHESIS TEMPORARILY DISABLED
-        # if self._subentry_type == "ai_task_data" and not model.startswith(
-        #     tuple(UNSUPPORTED_IMAGE_MODELS)
-        # ):
-        #     step_schema[
-        #         vol.Optional(CONF_IMAGE_MODEL, default=RECOMMENDED_IMAGE_MODEL)
-        #     ] = SelectSelector(
-        #         SelectSelectorConfig(
-        #             options=[
-        #                 "gpt-image-2",
-        #                 "gpt-image-1.5",
-        #                 "gpt-image-1",
-        #                 "gpt-image-1-mini",
-        #             ],
-        #             mode=SelectSelectorMode.DROPDOWN,
-        #         )
-        #     )
 
         if user_input is not None:
             if user_input.get(CONF_WEB_SEARCH):

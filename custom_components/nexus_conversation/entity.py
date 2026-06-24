@@ -720,22 +720,6 @@ class NexusBaseLLMEntity(Entity):
             )
             model_args.setdefault("include", []).append("code_interpreter_call.outputs")  # type: ignore[union-attr]
 
-        # IMAGE SYNTHESIS TEMPORARILY DISABLED
-        # if force_image:
-        #     image_model = options.get(CONF_IMAGE_MODEL, RECOMMENDED_IMAGE_MODEL)
-        #     image_tool = ImageGeneration(
-        #         type="image_generation",
-        #         model=image_model,
-        #         output_format="png",
-        #     )
-        #     if image_model not in ("gpt-image-1-mini", "gpt-image-2"):
-        #         image_tool["input_fidelity"] = "high"
-        #     tools.append(image_tool)
-        #     # Keep image state on upstream so follow-up prompts can continue by
-        #     # conversation ID without resending the generated image data.
-        #     model_args["store"] = True
-        #     model_args["tool_choice"] = ToolChoiceTypesParam(type="image_generation")
-
         if tools:
             model_args["tools"] = tools
 
@@ -749,8 +733,7 @@ class NexusBaseLLMEntity(Entity):
             )
             last_message = messages[-1]
             if not (
-                last_message["type"] == "message"
-                and last_message["role"] == "user"
+                last_message["type"] == "message" and last_message["role"] == "user"
             ):
                 raise HomeAssistantError(
                     "Unable to attach files: unexpected message format in chat log"

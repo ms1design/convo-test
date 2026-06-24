@@ -34,9 +34,6 @@ from homeassistant.helpers import (
 )
 from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.typing import ConfigType
-
-# IMAGE SYNTHESIS TEMPORARILY DISABLED
-# from openai.types.images_response import ImagesResponse
 from openai.types.responses import (
     EasyInputMessageParam,
     Response,
@@ -69,7 +66,6 @@ from .const import (
 )
 from .entity import async_prepare_files_for_prompt
 
-SERVICE_GENERATE_IMAGE = "generate_image"  # TEMPORARILY DISABLED
 SERVICE_GENERATE_CONTENT = "generate_content"
 
 PLATFORMS = (Platform.CONVERSATION, Platform.AI_TASK)
@@ -78,71 +74,38 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 type NexusConfigEntry = ConfigEntry[openai.AsyncClient]
 
 
-# IMAGE SYNTHESIS TEMPORARILY DISABLED
-# def _get_image_model(entry: NexusConfigEntry) -> str:
-#     """Get the configured image model from the conversation subentry."""
-#     for subentry in entry.subentries.values():
-#         if subentry.subentry_type == "conversation":
-#             return subentry.data.get(CONF_IMAGE_MODEL, RECOMMENDED_IMAGE_MODEL)
-#     return RECOMMENDED_IMAGE_MODEL
+async def _check_health(
+    http_client: httpx.AsyncClient, base_url: str, api_key: str
+) -> None:
+    """Lightweight health check against /v1/health endpoint."""
+    parsed = urllib.parse.urlparse(base_url)
+    if parsed.scheme != "https":
+        raise ValueError("base_url must use https:// scheme")
+
+    try:
+        resp = await http_client.get(
+            f"{parsed.scheme}://{parsed.netloc}/v1/health",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=10.0,
+        )
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as err:
+        raise _HealthCheckError(err.response.status_code, str(err)) from err
+    except (httpx.ConnectError, httpx.TimeoutException) as err:
+        raise _HealthCheckError(0, str(err)) from err
+
+
+class _HealthCheckError(Exception):
+    """Raised when health check fails."""
+
+    def __init__(self, status_code: int, message: str) -> None:
+        self.status_code = status_code
+        self.message = message
+        super().__init__(message)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up Nexus Conversation."""
-    # No migration needed — zero active users
-    # await async_migrate_integration(hass)
-
-    # IMAGE SYNTHESIS TEMPORARILY DISABLED
-    # async def render_image(call: ServiceCall) -> ServiceResponse:
-    #     """Generate an image with the configured model."""
-    #     LOGGER.warning(
-    #         "Action '%s.%s' is deprecated and will be removed in the 2026.9.0 release. "
-    #         "Please use the 'ai_task.generate_image' action instead",
-    #         DOMAIN,
-    #         SERVICE_GENERATE_IMAGE,
-    #     )
-    #     ir.async_create_issue(
-    #         hass,
-    #         DOMAIN,
-    #         "deprecated_generate_image",
-    #         breaks_in_ha_version="2026.9.0",
-    #         is_fixable=False,
-    #         severity=ir.IssueSeverity.WARNING,
-    #         translation_key="deprecated_generate_image",
-    #     )
-    #
-    #     entry_id = call.data["config_entry"]
-    #     entry = hass.config_entries.async_get_entry(entry_id)
-    #
-    #     if entry is None or entry.domain != DOMAIN:
-    #         raise ServiceValidationError(
-    #             translation_domain=DOMAIN,
-    #             translation_key="invalid_config_entry",
-    #             translation_placeholders={"config_entry": entry_id},
-    #         )
-    #
-    #     client: openai.AsyncClient = entry.runtime_data
-    #
-    #     try:
-    #         response: ImagesResponse = await client.images.generate(
-    #             model=_get_image_model(entry),
-    #             prompt=call.data[CONF_PROMPT],
-    #             size=call.data["size"],
-    #             quality=call.data["quality"],
-    #             style=call.data["style"],
-    #             response_format="url",
-    #             n=1,
-    #         )
-    #     except openai.AuthenticationError as err:
-    #         entry.async_start_reauth(hass)
-    #         raise HomeAssistantError("Authentication error") from err
-    #     except openai.OpenAIError as err:
-    #         raise HomeAssistantError(f"Error generating image: {err}") from err
-    #
-    #     if not response.data or not response.data[0].url:
-    #         raise HomeAssistantError("No image returned")
-    #
-    #     return response.data[0].model_dump(exclude={"b64_json"})
 
     async def send_prompt(call: ServiceCall) -> ServiceResponse:
         """Send a prompt to Nexus and return the response."""
@@ -267,29 +230,6 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         supports_response=SupportsResponse.ONLY,
     )
 
-    # IMAGE SYNTHESIS TEMPORARILY DISABLED
-    # hass.services.async_register(
-    #     DOMAIN,
-    #     SERVICE_GENERATE_IMAGE,
-    #     render_image,
-    #     schema=vol.Schema(
-    #         {
-    #             vol.Required("config_entry"): selector.ConfigEntrySelector(
-    #                 {
-    #                     "integration": DOMAIN,
-    #                 }
-    #             ),
-    #             vol.Required(CONF_PROMPT): cv.string,
-    #             vol.Optional("size", default="1024x1024"): vol.In(
-    #                 ("1024x1024", "1024x1792", "1792x1024")
-    #             ),
-    #             vol.Optional("quality", default="standard"): vol.In(("standard", "hd")),
-    #             vol.Optional("style", default="vivid"): vol.In(("vivid", "natural")),
-    #         }
-    #     ),
-    #     supports_response=SupportsResponse.ONLY,
-    # )
-
     return True
 
 
@@ -309,23 +249,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> boo
     # (caching done by library)
     _ = await hass.async_add_executor_job(client.platform_headers)
 
-    # Lightweight health check against /v1/health endpoint
-    parsed = urllib.parse.urlparse(base_url)
+    # Health check
     http_client = client._client
     try:
-        resp = await http_client.get(
-            f"{parsed.scheme}://{parsed.netloc}/v1/health",
-            headers={"Authorization": f"Bearer {entry.data[CONF_API_KEY]}"},
-            timeout=10.0,
-        )
-        resp.raise_for_status()
-    except httpx.HTTPStatusError as err:
-        if err.response.status_code == 401:
+        await _check_health(http_client, base_url, entry.data[CONF_API_KEY])
+    except _HealthCheckError as err:
+        if err.status_code == 401:
             raise ConfigEntryAuthFailed(err) from err
-        raise ConfigEntryNotReady(err) from err
-    except httpx.ConnectError as err:
-        raise ConfigEntryNotReady(err) from err
-    except httpx.TimeoutException as err:
         raise ConfigEntryNotReady(err) from err
 
     LOGGER.info("Connected to Nexus at %s", base_url)
@@ -347,7 +277,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> bo
 async def async_update_options(hass: HomeAssistant, entry: NexusConfigEntry) -> None:
     """Update options."""
     await hass.config_entries.async_reload(entry.entry_id)
-
 
 
 def _add_ai_task_subentry(hass: HomeAssistant, entry: NexusConfigEntry) -> None:

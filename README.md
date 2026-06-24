@@ -9,7 +9,7 @@
 
 Nexus is a Home Assistant custom integration that delivers OpenAI-powered conversation and task automation to your smart home. Under the hood it speaks the **OpenAI Responses API** schema — the same protocol used by `gpt-4o`, `o-series`, and `gpt-5` models — but tailored specifically for the Nexus AI Assistant self-hosted backend.
 
-Unlike the official HA `openai_conversation` integration, Nexus **strips away the legacy STT/TTS pipeline** and focuses purely on text-based conversation, structured data generation, and image synthesis. Where the stock OpenAI integration stops at model parameters, Nexus enriches every request with rich home-context metadata (room, floor, user identity) so the assistant understands *where* and *who* it's talking to.
+Unlike the official HA `openai_conversation` integration, Nexus **strips away the legacy STT/TTS pipeline** and focuses purely on text-based conversation and structured data generation. Where the stock OpenAI integration stops at model parameters, Nexus enriches every request with rich home-context metadata (room, floor, user identity) so the assistant understands *where* and *who* it's talking to.
 
 ## Key Differences vs. Native `openai_conversation`
 
@@ -36,9 +36,9 @@ These enrichments happen transparently before the request reaches the model — 
 ## Features
 
 - **Conversation Agent** — Full OpenAI Responses API support (streaming, tool calls, reasoning)
-- **AI Tasks** — Structured data generation with JSON schema output and image generation
+- **AI Tasks** — Structured data generation with JSON schema output
 - **Zero-conf Discovery** — mDNS auto-discovers Nexus servers on the local network
-- **Tool Calling** — Web search, code interpreter, image generation (DALL·E)
+- **Tool Calling** — Web search, code interpreter
 - **Multi-language** — Locale-aware responses via configurable system prompts
 - **Parent/Sub-entry Config** — One API key, multiple conversation agents and AI tasks
 
@@ -90,7 +90,6 @@ All OpenAI chat, reasoning, and vision models:
 | Chat | `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo` |
 | Reasoning | `o1`, `o3-mini`, `gpt-5` series |
 | Vision | `gpt-4o`, `gpt-4o-mini` (with image inputs) |
-| Images | `gpt-image-1` |
 
 See the [OpenAI models documentation](https://platform.openai.com/docs/models) for the complete list.
 

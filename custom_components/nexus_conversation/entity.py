@@ -761,23 +761,23 @@ class NexusBaseLLMEntity(Entity):
         client = self.entry.runtime_data
 
         # Build request metadata for tracking/analytics (model does not see this).
-        # Budget: 16 KV pairs. Currently using 5 (area_id, area_name, floor_name,
-        # user_id, conversation_id). Remaining: 11.
-        if area_id or area_name or user_id:
-            kwargs: ResponseCreateParamsStreaming = {
-                k: v
-                for k, v in (
-                    ("area_id", area_id),
-                    ("area_name", area_name),
-                    ("floor_name", floor_name),
-                    ("user_id", user_id),
-                    ("conversation_id", chat_log.conversation_id or ""),
-                )
-                if v
-            }
-            kwargs.update(model_args)
-        else:
-            kwargs = dict(model_args)
+        # Metadata is a flat string->string dict capped at 16 KV pairs.
+        # Currently using 5 (area_id, area_name, floor_name, user_id,
+        # conversation_id). Remaining capacity: 11.
+        metadata: dict[str, str] = {
+            k: str(v)
+            for k, v in (
+                ("area_id", area_id),
+                ("area_name", area_name),
+                ("floor_name", floor_name),
+                ("user_id", user_id),
+                ("conversation_id", chat_log.conversation_id or ""),
+            )
+            if v
+        }
+        kwargs: ResponseCreateParamsStreaming = dict(model_args)
+        if metadata:
+            kwargs["metadata"] = metadata
 
         # To prevent infinite loops, we limit the number of iterations
         for _iteration in range(max_iterations):

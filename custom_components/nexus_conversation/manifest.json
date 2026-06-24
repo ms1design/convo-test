@@ -20,6 +20,6 @@
   "requirements": [
     "openai==2.21.0"
   ],
-  "version": "0.0.59",
-  "zeroconf": ["_com.futureproofhomes.nexus._tcp.local."]
+  "version": "0.0.60",
+  "zeroconf": ["_nexus._tcp.local."]
 }

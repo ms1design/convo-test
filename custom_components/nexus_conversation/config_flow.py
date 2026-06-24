@@ -170,6 +170,28 @@ class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
         self._discovered_host: str = ""
         self._discovered_port: int = 0
 
+    async def async_step_discovery_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm discovery."""
+        if user_input is not None:
+            return self.async_create_entry(
+                title="Nexus",
+                data={
+                    CONF_BASE_URL: f"http://{self._discovered_host}:{self._discovered_port}/home-assistant/v1",
+                    CONF_API_KEY: self.context.get("api_key", "sk-1"),
+                },
+            )
+
+        self._set_confirm_only()
+        return self.async_show_form(
+            step_id="discovery_confirm",
+            description_placeholders={
+                "name": self.context.get("title_placeholders", {}).get("name", "Nexus"),
+                "host": self._discovered_host,
+            },
+        )
+
     @override
     async def async_step_zeroconf(
         self, discovery_info: ZeroconfServiceInfo
@@ -181,58 +203,40 @@ class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
         self._discovered_host = host
         self._discovered_port = port
 
-        # Derive unique_id from device_id property or fall back to host:port
         unique_id = discovery_info.properties.get("device_id") or f"{host}:{port}"
+        api_key = discovery_info.properties.get("api_key", "sk-1")
 
         await self.async_set_unique_id(unique_id, raise_on_progress=False)
         self._abort_if_unique_id_configured(
             updates={
                 CONF_BASE_URL: f"http://{host}:{port}/home-assistant/v1",
-                CONF_API_KEY: discovery_info.properties.get("api_key", "sk-1"),
+                CONF_API_KEY: api_key,
             }
         )
 
-        # Validate the discovered server is reachable
         try:
             await validate_input(
                 self.hass,
-                {
-                    CONF_BASE_URL: f"http://{host}:{port}/home-assistant/v1",
-                    CONF_API_KEY: discovery_info.properties.get("api_key", "sk-1"),
-                },
+                {CONF_BASE_URL: f"http://{host}:{port}/home-assistant/v1", CONF_API_KEY: api_key},
             )
         except vol.Invalid:
-            # Validation failed — still offer confirmation; user can adjust
             pass
         except Exception:
             _LOGGER.exception("Unexpected error during zeroconf discovery")
 
-        self.context.update({
-            "title_placeholders": {
-                "name": discovery_info.properties.get("model", "Nexus"),
-                "host": host,
-            },
-        })
+        self.context["title_placeholders"] = {
+            "name": discovery_info.properties.get("model", "Nexus"),
+            "host": host,
+        }
+        self.context["api_key"] = api_key
 
-        # Confirm only if user has already onboarded HA
-        if onboarding.async_is_onboarded(self.hass):
-            self._set_confirm_only()
-            return self.async_show_form(
-                step_id="discovery_confirm",
-                description_placeholders={
-                    "name": discovery_info.properties.get("model", "Nexus"),
-                    "host": host,
-                },
+        if not onboarding.async_is_onboarded(self.hass):
+            return self.async_create_entry(
+                title="Nexus",
+                data={CONF_BASE_URL: f"http://{host}:{port}/home-assistant/v1", CONF_API_KEY: api_key},
             )
 
-        # Fresh install — create directly
-        return self.async_create_entry(
-            title="Nexus",
-            data={
-                CONF_BASE_URL: f"http://{host}:{port}/home-assistant/v1",
-                CONF_API_KEY: discovery_info.properties.get("api_key", "sk-1"),
-            },
-        )
+        return await self.async_step_discovery_confirm()
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None

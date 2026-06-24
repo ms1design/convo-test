@@ -106,7 +106,8 @@ Online research is a CRITICAL first step when working with external dependencies
 # Project-Specific Information
 
 ## Overview
-This is a Home Assistant integration for Nexus Conversation, a custom integration that provides AI conversation and task capabilities using OpenAI's API. The integration supports both conversation agents and AI task entities.
+
+This is a Home Assistant integration developed by the **FutureProof Homes Team** for the **Nexus AI Assistant** platform. It provides AI-powered conversation and structured data generation capabilities using OpenAI's Responses API schema. Unlike the stock HA `openai_conversation` integration, Nexus strips the legacy STT/TTS pipeline and enriches every request with home context (area, floor, user identity, sensors). The integration supports both conversation agents and AI task entities as child subentries under a single parent config.
 
 ## Key Components
 
@@ -119,9 +120,11 @@ This is a Home Assistant integration for Nexus Conversation, a custom integratio
 - `const.py`: Constants and configuration options
 
 ### Services
-The integration provides two services:
-- `nexus_conversation.generate_content`: Send prompts to Nexus and get responses
-- `nexus_conversation.generate_image`: Generate images using DALL-E
+The integration provides two **deprecated** services (kept for backward compatibility):
+- `nexus_conversation.generate_content`: Deprecated — use `ai_task.generate_data` instead
+- `nexus_conversation.generate_image`: Deprecated — use `ai_task.generate_image` instead
+
+Modern integrations should use the AI Task platform directly via subentries.
 
 ### Platforms
 - `Platform.AI_TASK`: AI Task platform

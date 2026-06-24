@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 import json
 import re
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable, Iterable
 from mimetypes import guess_file_type
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast, override
@@ -748,15 +748,24 @@ class NexusBaseLLMEntity(Entity):
                 [(a.path, a.mime_type) for a in last_content.attachments],
             )
             last_message = messages[-1]
-            assert (
+            if not (
                 last_message["type"] == "message"
                 and last_message["role"] == "user"
-                and isinstance(last_message["content"], str)
-            )
-            last_message["content"] = [
-                {"type": "input_text", "text": last_message["content"]},
-                *files,
-            ]
+            ):
+                raise HomeAssistantError(
+                    "Unable to attach files: unexpected message format in chat log"
+                )
+            if isinstance(last_message["content"], str):
+                last_message["content"] = [
+                    {"type": "input_text", "text": last_message["content"]},
+                    *files,
+                ]
+            elif isinstance(last_message["content"], list):
+                last_message["content"].extend(files)
+            else:
+                raise HomeAssistantError(
+                    "Unable to attach files: unexpected content type in chat log"
+                )
 
         if structure and structure_name:
             model_args["text"] = {

@@ -160,6 +160,7 @@ async def _register_panel_for_entry(
     await hass.async_add_executor_job(
         _render_panel_js, template_src, dashboard_url, webcomponent_name, target_path
     )
+    LOGGER.debug("Wrote panel JS to %s", target_path)
 
     try:
         # Register static file serving
@@ -170,6 +171,7 @@ async def _register_panel_for_entry(
                 cache_headers=False,
             ),
         ])
+        LOGGER.info("Registered static paths for panel [%s]", frontend_url_path)
 
         # Register the panel
         await async_register_panel(

@@ -204,9 +204,7 @@ async def _unregister_panel_for_entry_by_id(
 
     if frontend_url_path:
         try:
-            await hass.async_add_executor_job(
-                async_unregister_panel, hass, frontend_url_path
-            )
+            await async_unregister_panel(hass, frontend_url_path)
         except Exception:
             LOGGER.exception("Failed to unregister panel %s", panel_id)
 

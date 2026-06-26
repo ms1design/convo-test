@@ -37,7 +37,7 @@ from homeassistant.helpers import (
 )
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.httpx_client import get_async_client
-from homeassistant.typing import ConfigType
+from typing import Any
 from openai.types.responses import (
     EasyInputMessageParam,
     Response,
@@ -274,7 +274,7 @@ class _HealthCheckError(Exception):
 # Async setup
 # ---------------------------------------------------------------------------
 
-async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up Nexus Conversation."""
 
     async def send_prompt(call: ServiceCall) -> ServiceResponse:

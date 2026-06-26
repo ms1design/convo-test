@@ -114,7 +114,10 @@ def _sanitize_for_js(value: str) -> str:
 def _render_panel_js(template_src: str, dashboard_url: str, target: str) -> None:
     """Render and write the panel JS file (runs in executor)."""
     os.makedirs(os.path.dirname(target), exist_ok=True)
-    rendered = template_src.replace("__NEXUS_DASHBOARD_URL__", _sanitize_for_js(dashboard_url))
+    rendered = template_src.replace(
+        "__NEXUS_DASHBOARD_URL__", _sanitize_for_js(dashboard_url)
+    )
+    rendered = rendered.replace("{{SENTINEL}}", "_never_matches_real_url_")
     with open(target, "w", encoding="utf-8") as fh:
         fh.write(rendered)
 

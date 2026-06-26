@@ -17,7 +17,7 @@
       container.style.cssText =
         "display:flex;width:100%;height:100%;margin:0;padding:0;overflow:hidden";
 
-      if (dashboardUrl && dashboardUrl !== "__NEXUS_DASHBOARD_URL__") {
+      if (dashboardUrl && dashboardUrl !== "{{SENTINEL}}") {
         const frame = document.createElement("iframe");
         frame.src = dashboardUrl;
         frame.style.cssText =

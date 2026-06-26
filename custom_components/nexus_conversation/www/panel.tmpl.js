@@ -5,6 +5,7 @@
     constructor() {
       super();
       this.hass = null;
+      this._initialized = false;
     }
 
     set hass(hass) {
@@ -12,8 +13,10 @@
     }
 
     connectedCallback() {
-      this.innerHTML = "";
+      if (this._initialized) return;
+      this._initialized = true;
       const container = document.createElement("div");
+      container.id = "nexus-container";
       container.style.cssText =
         "display:flex;width:100%;height:100%;margin:0;padding:0;overflow:hidden";
 

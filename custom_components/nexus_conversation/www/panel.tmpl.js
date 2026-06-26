@@ -4,12 +4,16 @@
   class NexusPanelElement extends HTMLElement {
     constructor() {
       super();
-      this.hass = null;
+      this._hass = null;
       this._initialized = false;
     }
 
-    set hass(hass) {
-      this.hass = hass;
+    get hass() {
+      return this._hass;
+    }
+
+    set hass(value) {
+      this._hass = value;
     }
 
     connectedCallback() {

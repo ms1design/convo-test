@@ -111,13 +111,14 @@ def _sanitize_for_js(value: str) -> str:
     )
 
 
-def _render_panel_js(template_src: str, dashboard_url: str, target: str) -> None:
+def _render_panel_js(template_src: str, dashboard_url: str, webcomponent_name: str, target: str) -> None:
     """Render and write the panel JS file (runs in executor)."""
     os.makedirs(os.path.dirname(target), exist_ok=True)
     rendered = template_src.replace(
         "__NEXUS_DASHBOARD_URL__", _sanitize_for_js(dashboard_url)
     )
     rendered = rendered.replace("{{SENTINEL}}", "_never_matches_real_url_")
+    rendered = rendered.replace("__WEBCOMPONENT_NAME__", webcomponent_name)
     with open(target, "w", encoding="utf-8") as fh:
         fh.write(rendered)
 
@@ -157,7 +158,7 @@ async def _register_panel_for_entry(
 
     # Render and write panel JS in executor
     await hass.async_add_executor_job(
-        _render_panel_js, template_src, dashboard_url, target_path
+        _render_panel_js, template_src, dashboard_url, webcomponent_name, target_path
     )
 
     try:

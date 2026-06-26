@@ -247,3 +247,49 @@ Verify streaming works correctly with:
 - Tool calls
 - Multiple reasoning summaries
 - Image generation
+
+# Release Process
+
+Every release requires the following steps in order. **Never skip the version bump** — the manifest version must be incremented before tagging.
+
+## Steps
+
+1. **Stage all changes**
+   ```bash
+   git add custom_components/nexus_conversation/
+   ```
+
+2. **Commit the changes**
+   ```bash
+   git commit -m "<type>(<scope>): <short-summary>"
+   ```
+   Use conventional commit format. Allowed types: `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `chore`.
+
+3. **Bump the version in `manifest.json`**
+   Increment the `version` field in `custom_components/nexus_conversation/manifest.json`.
+
+4. **Stage and commit the version bump**
+   ```bash
+   git add custom_components/nexus_conversation/manifest.json
+   git commit -m "chore: bump version to X.X.XX"
+   ```
+
+5. **Create an annotated tag**
+   ```bash
+   git tag -a vX.X.XX -m "Release vX.X.XX: <brief-description>"
+   ```
+
+6. **Push branch and tag**
+   ```bash
+   git push --force-with-lease origin <current-branch>
+   git push origin vX.X.XX
+   ```
+
+## Checklist
+
+- [ ] All changes staged and committed
+- [ ] Version bumped in `manifest.json`
+- [ ] Version bump committed separately
+- [ ] Annotated tag created with description
+- [ ] Branch pushed
+- [ ] Tag pushed

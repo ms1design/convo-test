@@ -38,5 +38,5 @@
     }
   }
 
-  customElements.define("nexus-panel-element", NexusPanelElement);
+  customElements.define("__WEBCOMPONENT_NAME__", NexusPanelElement);
 })();

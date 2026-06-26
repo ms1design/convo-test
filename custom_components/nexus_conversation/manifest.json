@@ -11,15 +11,18 @@
   "config_flow": true,
   "dependencies": [
     "conversation",
-    "zeroconf"
+    "zeroconf",
+    "http",
+    "frontend",
+    "panel_custom"
   ],
-  "documentation": "https://github.com/ms1design/convo-test",
+  "documentation": "https://github.com/ms1design/nexus-hacs-integration",
   "integration_type": "service",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/ms1design/convo-test/issues",
+  "issue_tracker": "https://github.com/ms1design/nexus-hacs-integration/issues",
   "requirements": [
     "openai==2.21.0"
   ],
-  "version": "0.0.67",
+  "version": "0.0.68",
   "zeroconf": ["_nexus._tcp.local."]
 }

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import os
+import re
 import urllib.parse
+from functools import partial
 from pathlib import Path
 from types import MappingProxyType
 
@@ -32,8 +35,9 @@ from homeassistant.helpers import (
 from homeassistant.helpers import (
     selector,
 )
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.httpx_client import get_async_client
-from homeassistant.helpers.typing import ConfigType
+from homeassistant.typing import ConfigType
 from openai.types.responses import (
     EasyInputMessageParam,
     Response,
@@ -53,8 +57,10 @@ from .const import (
     CONF_TEMPERATURE,
     CONF_TOP_P,
     DEFAULT_AI_TASK_NAME,
+    DASHBOARD_PATH,
     DOMAIN,
     LOGGER,
+    PANEL_ICON,
     RECOMMENDED_AI_TASK_OPTIONS,
     RECOMMENDED_CHAT_MODEL,
     RECOMMENDED_MAX_TOKENS,
@@ -73,6 +79,170 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 type NexusConfigEntry = ConfigEntry[openai.AsyncClient]
 
+
+# ---------------------------------------------------------------------------
+# Panel helpers
+# ---------------------------------------------------------------------------
+
+_PANEL_TRACKER: dict[str, str] = {}
+
+
+def _derive_dashboard_url(base_url: str) -> str:
+    """Derive the Nexus dashboard URL from the API base_url."""
+    try:
+        parsed = urllib.parse.urlparse(base_url)
+        if not parsed.scheme or not parsed.netloc:
+            return base_url
+        return f"{parsed.scheme}://{parsed.netloc}"
+    except (ValueError, AttributeError):
+        return base_url
+
+
+def _sanitize_for_js(value: str) -> str:
+    """Escape a string for safe insertion into a JavaScript string literal."""
+    return (
+        value
+        .replace("\\", "\\\\")
+        .replace("'", "\\'")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    )
+
+
+def _render_panel_js(template_src: str, dashboard_url: str, target: str) -> None:
+    """Render and write the panel JS file (runs in executor)."""
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    rendered = template_src.replace("__NEXUS_DASHBOARD_URL__", _sanitize_for_js(dashboard_url))
+    with open(target, "w", encoding="utf-8") as fh:
+        fh.write(rendered)
+
+
+def _cleanup_entry_www(entry_id: str) -> None:
+    """Remove per-entry www directory (runs in executor)."""
+    base_www = os.path.join(os.path.dirname(__file__), "www", entry_id)
+    if os.path.isdir(base_www):
+        import shutil
+        shutil.rmtree(base_www, ignore_errors=True)
+
+
+async def _register_panel_for_entry(
+    hass: HomeAssistant, entry: NexusConfigEntry
+) -> None:
+    """Register a panel_custom panel for the given config entry."""
+    from homeassistant.components.http import StaticPathConfig
+    from homeassistant.components.panel_custom import async_register_panel
+
+    base_url = entry.data.get(CONF_BASE_URL, "")
+    dashboard_url = _derive_dashboard_url(base_url)
+    panel_slug = f"{entry.entry_id[:8]}"
+    panel_id = f"{DOMAIN}_{entry.entry_id}"
+    frontend_url_path = f"{DASHBOARD_PATH}_{panel_slug}"
+    webcomponent_name = f"nexus-dashboard-{panel_slug}"
+
+    base_www = os.path.join(os.path.dirname(__file__), "www")
+    entry_www = os.path.join(base_www, entry.entry_id)
+    target_path = os.path.join(entry_www, "panel.js")
+
+    # Read template in executor
+    template_path = os.path.join(base_www, "panel.tmpl.js")
+    try:
+        template_src = await hass.async_add_executor_job(Path(template_path).read_text)
+    except OSError:
+        template_src = "// panel.js template missing\nconst dashboardUrl = '';\n"
+
+    # Render and write panel JS in executor
+    await hass.async_add_executor_job(
+        _render_panel_js, template_src, dashboard_url, target_path
+    )
+
+    try:
+        # Register static file serving
+        await hass.http.async_register_static_paths([
+            StaticPathConfig(
+                url_path=f"/{frontend_url_path}",
+                path=entry_www,
+                cache_headers=False,
+            ),
+        ])
+
+        # Register the panel
+        async_register_panel(
+            hass,
+            frontend_url_path,
+            webcomponent_name,
+            sidebar_title=entry.title,
+            sidebar_icon=PANEL_ICON,
+            module_url=f"/{frontend_url_path}/panel.js",
+            require_admin=False,
+            config={
+                "entry_id": entry.entry_id,
+                "dashboard_url": dashboard_url,
+            },
+        )
+
+        _PANEL_TRACKER[panel_id] = frontend_url_path
+        LOGGER.info(
+            "Registered Nexus dashboard panel [%s] (%s) -> %s",
+            panel_slug,
+            entry.title,
+            dashboard_url,
+        )
+    except Exception:
+        LOGGER.exception("Failed to register dashboard panel for %s", entry.entry_id)
+
+
+async def _unregister_panel_for_entry_by_id(
+    hass: HomeAssistant, entry_id: str
+) -> None:
+    """Unregister a panel and clean up files by entry_id string."""
+    from homeassistant.components.panel_custom import async_unregister_panel
+
+    panel_id = f"{DOMAIN}_{entry_id}"
+    frontend_url_path = _PANEL_TRACKER.pop(panel_id, None)
+
+    if frontend_url_path:
+        try:
+            await hass.async_add_executor_job(
+                async_unregister_panel, hass, frontend_url_path
+            )
+        except Exception:
+            LOGGER.exception("Failed to unregister panel %s", panel_id)
+
+    # Clean up orphaned www directory
+    await hass.async_add_executor_job(_cleanup_entry_www, entry_id)
+
+
+async def _unregister_panel_for_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> None:
+    """Unregister a panel_custom panel for the given config entry."""
+    await _unregister_panel_for_entry_by_id(hass, entry.entry_id)
+
+
+async def _on_config_entry_changed(
+    hass: HomeAssistant, change, entry: ConfigEntry
+) -> None:
+    """Reactive to config entry updates (including renames)."""
+    from homeassistant.config_entries import ConfigEntryChange
+
+    if change is not ConfigEntryChange.UPDATED:
+        return
+    if entry.domain != DOMAIN:
+        return
+
+    panel_id = f"{DOMAIN}_{entry.entry_id}"
+    if panel_id not in _PANEL_TRACKER:
+        return
+
+    old_title = entry.title
+    # Re-register with updated title
+    await _register_panel_for_entry(hass, entry)
+    LOGGER.info("Updated dashboard panel title for %s: %s", entry.entry_id, old_title)
+
+
+# ---------------------------------------------------------------------------
+# Health check
+# ---------------------------------------------------------------------------
 
 async def _check_health(
     http_client: httpx.AsyncClient, base_url: str
@@ -99,6 +269,10 @@ class _HealthCheckError(Exception):
         self.message = message
         super().__init__(message)
 
+
+# ---------------------------------------------------------------------------
+# Async setup
+# ---------------------------------------------------------------------------
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up Nexus Conversation."""
@@ -241,9 +415,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> boo
         http_client=get_async_client(hass),
     )
 
-    # Cache current platform data which gets added to each request
-    # (caching done by library)
-    _ = await hass.async_add_executor_job(client.platform_headers)
+    # Warm up platform headers cache
+    await hass.async_add_executor_job(client.platform_headers)
 
     # Health check
     http_client = client._client
@@ -260,6 +433,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> boo
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # Register dashboard panel
+    await _register_panel_for_entry(hass, entry)
+
+    # Listen for config entry updates (covers renames)
+    unsub = async_dispatcher_connect(
+        hass,
+        "config_entry_updated",
+        lambda chg, ent: _on_config_entry_changed(hass, chg, ent),
+    )
+    entry.async_on_unload(unsub)
+
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
     return True
@@ -267,6 +451,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> boo
 
 async def async_unload_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> bool:
     """Unload Nexus Conversation."""
+    await _unregister_panel_for_entry(hass, entry)
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 

@@ -8,6 +8,8 @@ from homeassistant.const import CONF_LLM_HASS_API, CONF_PROMPT
 from homeassistant.helpers import llm
 
 DOMAIN = "nexus_conversation"
+PANEL_ICON = "mdi:robot"
+DASHBOARD_PATH = "nexus_dashboard"
 LOGGER: logging.Logger = logging.getLogger(__package__)
 
 DEFAULT_CONVERSATION_NAME = "Nexus Conversation"
@@ -35,7 +37,7 @@ CONF_WEB_SEARCH_COUNTRY = "country"
 CONF_WEB_SEARCH_TIMEZONE = "timezone"
 CONF_WEB_SEARCH_INLINE_CITATIONS = "inline_citations"
 RECOMMENDED_CODE_INTERPRETER = False
-RECOMMENDED_CHAT_MODEL = "gpt-4o-mini"
+RECOMMENDED_CHAT_MODEL = "Nexus"
 RECOMMENDED_MAX_TOKENS = 3000
 RECOMMENDED_REASONING_EFFORT = "low"
 RECOMMENDED_STORE_RESPONSES = False

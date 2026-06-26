@@ -197,16 +197,16 @@ async def _unregister_panel_for_entry_by_id(
     hass: HomeAssistant, entry_id: str
 ) -> None:
     """Unregister a panel and clean up files by entry_id string."""
-    from homeassistant.components.panel_custom import async_unregister_panel
+    from homeassistant.components.frontend import async_remove_panel
 
     panel_id = f"{DOMAIN}_{entry_id}"
     frontend_url_path = _PANEL_TRACKER.pop(panel_id, None)
 
     if frontend_url_path:
         try:
-            await async_unregister_panel(hass, frontend_url_path)
+            async_remove_panel(hass, frontend_url_path)
         except Exception:
-            LOGGER.exception("Failed to unregister panel %s", panel_id)
+            LOGGER.exception("Failed to remove panel %s", panel_id)
 
     # Clean up orphaned www directory
     await hass.async_add_executor_job(_cleanup_entry_www, entry_id)

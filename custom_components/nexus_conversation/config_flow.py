@@ -47,6 +47,7 @@ from voluptuous_openapi import convert
 
 from . import _check_health, _HealthCheckError
 from .const import (
+    CONF_ADD_SIDEBAR_MENU,
     CONF_BASE_URL,
     CONF_CHAT_MODEL,
     CONF_CODE_INTERPRETER,
@@ -70,6 +71,7 @@ from .const import (
     DEFAULT_AI_TASK_NAME,
     DEFAULT_CONVERSATION_NAME,
     DOMAIN,
+    RECOMMENDED_ADD_SIDEBAR_MENU,
     RECOMMENDED_AI_TASK_OPTIONS,
     RECOMMENDED_CHAT_MODEL,
     RECOMMENDED_CODE_INTERPRETER,
@@ -102,6 +104,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
             CONF_BASE_URL, default="http://<NEXUS_IP>:5015/home-assistant/v1"
         ): str,
         vol.Required(CONF_API_KEY, default="sk-1"): str,
+        vol.Required(CONF_ADD_SIDEBAR_MENU, default=True): bool,
     }
 )
 
@@ -162,6 +165,7 @@ class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_BASE_URL: f"http://{self._discovered_host}:{self._discovered_port}/home-assistant/v1",
                     CONF_API_KEY: self.context.get("api_key", "sk-1"),
                 },
+                options={CONF_ADD_SIDEBAR_MENU: False},
                 subentries=[
                     {
                         "subentry_type": "conversation",
@@ -235,6 +239,7 @@ class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_BASE_URL: f"http://{host}:{port}/home-assistant/v1",
                     CONF_API_KEY: api_key,
                 },
+                options={CONF_ADD_SIDEBAR_MENU: False},
                 subentries=[
                     {
                         "subentry_type": "conversation",
@@ -291,6 +296,11 @@ class NexusConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(
                     title="Nexus",
                     data=user_input,
+                    options={
+                        CONF_ADD_SIDEBAR_MENU: user_input.get(
+                            CONF_ADD_SIDEBAR_MENU, RECOMMENDED_ADD_SIDEBAR_MENU
+                        )
+                    },
                     subentries=[
                         {
                             "subentry_type": "conversation",

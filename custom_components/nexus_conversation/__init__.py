@@ -47,6 +47,7 @@ from openai.types.responses import (
 )
 
 from .const import (
+    CONF_ADD_SIDEBAR_MENU,
     CONF_BASE_URL,
     CONF_CHAT_MODEL,
     CONF_FILENAMES,
@@ -61,6 +62,7 @@ from .const import (
     DOMAIN,
     LOGGER,
     PANEL_ICON,
+    RECOMMENDED_ADD_SIDEBAR_MENU,
     RECOMMENDED_AI_TASK_OPTIONS,
     RECOMMENDED_CHAT_MODEL,
     RECOMMENDED_MAX_TOKENS,
@@ -437,8 +439,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> boo
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Register dashboard panel
-    await _register_panel_for_entry(hass, entry)
+    # Register dashboard panel (conditionally)
+    if entry.options.get(CONF_ADD_SIDEBAR_MENU, RECOMMENDED_ADD_SIDEBAR_MENU):
+        await _register_panel_for_entry(hass, entry)
+    else:
+        LOGGER.debug("Sidebar menu disabled for entry %s", entry.entry_id)
 
     # Listen for config entry updates (covers renames)
     unsub = async_dispatcher_connect(
@@ -455,7 +460,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> boo
 
 async def async_unload_entry(hass: HomeAssistant, entry: NexusConfigEntry) -> bool:
     """Unload Nexus Conversation."""
-    await _unregister_panel_for_entry(hass, entry)
+    if entry.options.get(CONF_ADD_SIDEBAR_MENU, RECOMMENDED_ADD_SIDEBAR_MENU):
+        await _unregister_panel_for_entry(hass, entry)
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 

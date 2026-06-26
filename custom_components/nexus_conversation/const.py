@@ -15,6 +15,9 @@ LOGGER: logging.Logger = logging.getLogger(__package__)
 DEFAULT_CONVERSATION_NAME = "Nexus Conversation"
 DEFAULT_AI_TASK_NAME = "Nexus AI Task"
 
+CONF_ADD_SIDEBAR_MENU = "add_sidebar_menu"
+RECOMMENDED_ADD_SIDEBAR_MENU = True
+
 CONF_BASE_URL = "base_url"
 CONF_CHAT_MODEL = "chat_model"
 CONF_CODE_INTERPRETER = "code_interpreter"

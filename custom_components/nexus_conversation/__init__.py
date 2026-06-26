@@ -168,7 +168,7 @@ async def _register_panel_for_entry(
         ])
 
         # Register the panel
-        async_register_panel(
+        await async_register_panel(
             hass,
             frontend_url_path,
             webcomponent_name,
